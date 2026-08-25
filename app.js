@@ -1,5 +1,5 @@
 /**
- * Main Application Controller & UI Logic
+ * Main Application Controller & UI Logic (Optimized for Mobile & Desktop)
  */
 document.addEventListener('DOMContentLoaded', async () => {
   let currentDate = Jalali.formatJalaliDate(new Date());
@@ -44,6 +44,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selectStatus = document.getElementById('select-status');
   const btnResetFilters = document.getElementById('btn-reset-filters');
 
+  // فیلتر موبایل
+  const btnToggleFiltersMobile = document.getElementById('btn-toggle-filters-mobile');
+  const mainFilterPanel = document.getElementById('main-filter-panel');
+  const filterToggleArrow = document.getElementById('filter-toggle-arrow');
+
   // مودال‌ها
   const modalEntry = document.getElementById('modal-entry');
   const modalExit = document.getElementById('modal-exit');
@@ -66,6 +71,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editPlateContainer = document.getElementById('edit-plate-container');
   const autofillIndicator = document.getElementById('autofill-indicator');
 
+  // باز و بسته کردن فیلتر در موبایل
+  if (window.innerWidth <= 820) {
+    mainFilterPanel.classList.add('is-collapsed');
+  }
+
+  btnToggleFiltersMobile?.addEventListener('click', () => {
+    const isCurrentlyCollapsed = mainFilterPanel.classList.contains('is-collapsed');
+    mainFilterPanel.classList.toggle('is-collapsed');
+    filterToggleArrow.classList.toggle('is-open', isCurrentlyCollapsed);
+  });
+
   // اعلان‌های شناور (Toast)
   function showToast(type, text) {
     const container = document.getElementById('toast-container');
@@ -81,10 +97,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateDbIndicator() {
     if (DB.isCloudConfigured()) {
       dbStatusIndicator.className = 'db-status-badge is-online';
-      dbStatusText.textContent = 'دیتابیس ابری (Turso Cloud)';
+      dbStatusText.textContent = 'دیتابیس ابری';
     } else {
       dbStatusIndicator.className = 'db-status-badge is-local';
-      dbStatusText.textContent = 'دیتابیس محلی (LocalStorage)';
+      dbStatusText.textContent = 'دیتابیس محلی';
     }
   }
 
@@ -132,15 +148,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderPersonCategoryBadge(category) {
     switch (category) {
-      case 'STAFF': return '<span class="badge-person badge-person-staff">پرسنل دانشگاه</span>';
-      case 'FACULTY': return '<span class="badge-person badge-person-faculty">هیئت علمی / استاد</span>';
+      case 'STAFF': return '<span class="badge-person badge-person-staff">پرسنل</span>';
+      case 'FACULTY': return '<span class="badge-person badge-person-faculty">هیئت علمی</span>';
       case 'STUDENT': return '<span class="badge-person badge-person-student">دانشجو</span>';
-      case 'CONTRACTOR': return '<span class="badge-person badge-person-contractor">پیمانکار / خدمات</span>';
-      default: return '<span class="badge-person badge-person-guest">ارباب‌رجوع / مهمان</span>';
+      case 'CONTRACTOR': return '<span class="badge-person badge-person-contractor">پیمانکار</span>';
+      default: return '<span class="badge-person badge-person-guest">ارباب‌رجوع</span>';
     }
   }
 
-  // --- سیستم Auto-Fill مراجعین و پلاک‌ها ---
+  // Auto-Fill مراجعین و پلاک‌ها
   function updateKnownNamesDatalist() {
     const datalist = document.getElementById('known-names-list');
     const profiles = DB.getLocalProfiles();
@@ -183,7 +199,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ورودی‌های پلاک
   function setupPlateInputAutoConvert(inputEl, maxLen, nextEl, autoFillCallback) {
     inputEl.addEventListener('input', (e) => {
       e.target.value = Jalali.cleanToPersianDigits(e.target.value, maxLen);
@@ -214,7 +229,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // پلاک جستجو
   setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
   searchPlateLtr.addEventListener('change', (e) => { 
     updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
@@ -224,7 +238,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
   setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
 
-  // پلاک ویرایش
   const editP1 = document.getElementById('edit-plate-p1');
   const editLtr = document.getElementById('edit-plate-ltr');
   const editP2 = document.getElementById('edit-plate-p2');
@@ -254,7 +267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnToggleVehicle.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
   btnTogglePedestrian.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
 
-  // --- دریافت و فیلتر اطلاعات جدول ---
+  // دریافت و فیلتر اطلاعات جدول
   async function loadData() {
     displayDateEl.textContent = `${Jalali.getHumanReadable(currentDate)} (${Jalali.toPersianDigits(currentDate)})`;
     tableLoading.classList.remove('hidden');
@@ -270,7 +283,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let filtered = [...allRecords];
 
-    // ۱. فیلتر تاریخ
     const datePreset = selectDatePreset.value;
     const todayStr = Jalali.formatJalaliDate(new Date());
 
@@ -291,7 +303,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // ۲. فیلتر ساعت و شیفت
     const timeFilter = selectTimeFilter.value;
     if (timeFilter === 'MORNING') {
       filtered = filtered.filter(r => { const t = Jalali.toLatinDigits(r.entry_time_display || ''); return t >= '06:00' && t < '14:00'; });
@@ -306,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (to) filtered = filtered.filter(r => Jalali.toLatinDigits(r.entry_time_display || '') <= to);
     }
 
-    // ۳. فیلتر نوع مراجع
     const filterTypeVal = selectFilterType.value;
     if (filterTypeVal === 'ONLY_VEHICLE') {
       filtered = filtered.filter(r => r.traffic_type !== 'PEDESTRIAN');
@@ -318,23 +328,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       filtered = filtered.filter(r => r.person_category === 'GUEST' || r.person_category === 'CONTRACTOR');
     }
 
-    // ۴. فیلتر دسته بندی خودرو
     const vehCatVal = selectFilterVehCategory.value;
     if (vehCatVal !== 'ALL') {
       filtered = filtered.filter(r => r.traffic_type !== 'PEDESTRIAN' && (r.vehicle_category === vehCatVal));
     }
 
-    // ۵. فیلتر مامور
     const guardFilter = selectFilterGuard.value;
     if (guardFilter !== 'ALL') {
       filtered = filtered.filter(r => (r.guard_name || '').includes(guardFilter));
     }
 
-    // ۶. فیلتر وضعیت
     const status = selectStatus.value;
     if (status !== 'ALL') filtered = filtered.filter(r => r.status === status);
 
-    // ۷. جستجوی متنی
     const query = Jalali.toLatinDigits(inputSearch.value.trim().toLowerCase());
     if (query) {
       filtered = filtered.filter(r => {
@@ -350,7 +356,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // ۸. تفکیک پلاک
     const sP1 = Jalali.toLatinDigits(searchPlateP1.value.trim());
     const sLtr = searchPlateLtr.value;
     const sP2 = Jalali.toLatinDigits(searchPlateP2.value.trim());
@@ -361,19 +366,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sP2) filtered = filtered.filter(r => Jalali.toLatinDigits(r.plate_part2 || '').includes(sP2));
     if (sCity) filtered = filtered.filter(r => Jalali.toLatinDigits(r.plate_city || '').includes(sCity));
 
-    // بروزرسانی آمار
     statActiveCount.textContent = Jalali.toPersianDigits(allRecords.filter(r => r.status === 'ACTIVE').length);
     statTotalCount.textContent = Jalali.toPersianDigits(filtered.length);
     statStaffCount.textContent = Jalali.toPersianDigits(filtered.filter(r => r.person_category === 'STAFF' || r.person_category === 'FACULTY').length);
     statExitedCount.textContent = Jalali.toPersianDigits(filtered.filter(r => r.status === 'EXITED').length);
 
-    // رندر جدول
     recordsTbody.innerHTML = '';
     if (filtered.length === 0) {
       tableEmptyState.classList.remove('hidden');
       return;
     }
     tableEmptyState.classList.add('hidden');
+
+    const isMobile = window.innerWidth <= 820;
 
     filtered.forEach((r, idx) => {
       const tr = document.createElement('tr');
@@ -384,55 +389,113 @@ document.addEventListener('DOMContentLoaded', async () => {
         ? '<span class="badge-pedestrian"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg> عابر پیاده</span>'
         : renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
 
-      const vehicleInfoHtml = isPedestrian
-        ? '<span style="color:var(--text-muted); font-size:0.72rem;">بدون وسیله نقلیه</span>'
-        : `
-          <div>
-            <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
-            ${r.vehicle_model ? `<div class="badge-veh-model">${r.vehicle_model}</div>` : ''}
-          </div>
-        `;
+      const statusBadgeHtml = isActive 
+        ? '<span class="badge-status badge-active">حاضر در پردیس</span>' 
+        : '<span class="badge-status badge-exited">خارج شده</span>';
 
-      tr.innerHTML = `
-        <td class="text-center" style="color:var(--text-muted); font-size:0.75rem;">${Jalali.toPersianDigits(idx + 1)}</td>
-        <td>${renderPersonCategoryBadge(r.person_category)}</td>
-        <td>${plateOrPedestrianHtml}</td>
-        <td style="font-weight:700;">${r.person_name}</td>
-        <td>${vehicleInfoHtml}</td>
-        <td>
-          <div style="font-weight:600;">${Jalali.toPersianDigits(r.entry_time_display)}</div>
-          <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.entry_jalali_date)}</div>
-        </td>
-        <td>
-          ${r.exit_time_display ? `
-            <div style="font-weight:600;">${Jalali.toPersianDigits(r.exit_time_display)}</div>
-            <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.exit_jalali_date)}</div>
-          ` : '<span style="color:var(--text-muted); font-size:0.75rem;">-- : --</span>'}
-        </td>
-        <td style="color:var(--text-muted); font-size:0.74rem; max-width:180px;">${r.notes || '—'}</td>
-        <td>
-          <div style="display:flex; flex-direction:column; font-size:0.72rem;">
-            <span style="font-weight:700;">${r.guard_name || 'مامور کشیک'}</span>
-            <span style="font-size:0.65rem; color:var(--text-muted);">${r.guard_shift || ''}</span>
-          </div>
-        </td>
-        <td>${isActive ? '<span class="badge-status badge-active">حاضر در پردیس</span>' : '<span class="badge-status badge-exited">خارج شده</span>'}</td>
-        <td class="text-center">
-          <div class="action-group">
-            ${isActive ? `
-              <button class="btn-action-icon exit-btn" data-action="exit" data-id="${r.id}" title="ثبت خروج">
-                <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              </button>
-            ` : ''}
-            <button class="btn-action-icon edit-btn" data-action="edit" data-id="${r.id}" title="ویرایش">
-              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      const actionsHtml = `
+        <div class="action-group">
+          ${isActive ? `
+            <button class="btn-action-icon exit-btn" data-action="exit" data-id="${r.id}" title="ثبت خروج">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
-            <button class="btn-action-icon delete-btn" data-action="delete" data-id="${r.id}" title="حذف">
-              <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </div>
-        </td>
+          ` : ''}
+          <button class="btn-action-icon edit-btn" data-action="edit" data-id="${r.id}" title="ویرایش">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-action-icon delete-btn" data-action="delete" data-id="${r.id}" title="حذف">
+            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
       `;
+
+      if (isMobile) {
+        // رندر نمای کارتی موبایل
+        tr.innerHTML = `
+          <td>
+            <div class="mobile-card-header">
+              <div style="display:flex; align-items:center; gap:0.35rem;">
+                <span style="font-weight:800; font-size:0.75rem; color:var(--text-muted);">#${Jalali.toPersianDigits(idx + 1)}</span>
+                ${renderPersonCategoryBadge(r.person_category)}
+              </div>
+              <div>${statusBadgeHtml}</div>
+            </div>
+
+            <div class="mobile-card-row">
+              <span style="font-weight:800; font-size:0.95rem;">${r.person_name}</span>
+              <div>${plateOrPedestrianHtml}</div>
+            </div>
+
+            ${!isPedestrian ? `
+              <div class="mobile-card-row">
+                <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
+                <span class="badge-veh-model">${r.vehicle_model || ''}</span>
+              </div>
+            ` : ''}
+
+            <div class="mobile-card-meta-grid">
+              <div class="mobile-meta-item">
+                <span class="mobile-meta-label">ورود:</span>
+                <span class="mobile-meta-value">${Jalali.toPersianDigits(r.entry_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.entry_jalali_date)})</small></span>
+              </div>
+              <div class="mobile-meta-item">
+                <span class="mobile-meta-label">خروج:</span>
+                <span class="mobile-meta-value">${r.exit_time_display ? `${Jalali.toPersianDigits(r.exit_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.exit_jalali_date)})</small>` : '-- : --'}</span>
+              </div>
+            </div>
+
+            ${r.notes ? `
+              <div style="font-size:0.72rem; color:var(--text-muted); margin:0.35rem 0; line-height:1.4;">
+                <strong>علت / مقصد:</strong> ${r.notes}
+              </div>
+            ` : ''}
+
+            <div class="mobile-card-footer">
+              <div style="font-size:0.7rem; color:var(--text-muted);">
+                مامور: <strong>${r.guard_name || 'کشیک'}</strong>
+              </div>
+              ${actionsHtml}
+            </div>
+          </td>
+        `;
+      } else {
+        // رندر نمای جدولی دسکتاپ
+        const vehicleInfoHtml = isPedestrian
+          ? '<span style="color:var(--text-muted); font-size:0.72rem;">بدون وسیله</span>'
+          : `
+            <div>
+              <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
+              ${r.vehicle_model ? `<div class="badge-veh-model">${r.vehicle_model}</div>` : ''}
+            </div>
+          `;
+
+        tr.innerHTML = `
+          <td class="text-center" style="color:var(--text-muted); font-size:0.75rem;">${Jalali.toPersianDigits(idx + 1)}</td>
+          <td>${renderPersonCategoryBadge(r.person_category)}</td>
+          <td>${plateOrPedestrianHtml}</td>
+          <td style="font-weight:700;">${r.person_name}</td>
+          <td>${vehicleInfoHtml}</td>
+          <td>
+            <div style="font-weight:600;">${Jalali.toPersianDigits(r.entry_time_display)}</div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.entry_jalali_date)}</div>
+          </td>
+          <td>
+            ${r.exit_time_display ? `
+              <div style="font-weight:600;">${Jalali.toPersianDigits(r.exit_time_display)}</div>
+              <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.exit_jalali_date)}</div>
+            ` : '<span style="color:var(--text-muted); font-size:0.75rem;">-- : --</span>'}
+          </td>
+          <td style="color:var(--text-muted); font-size:0.74rem; max-width:180px;">${r.notes || '—'}</td>
+          <td>
+            <div style="display:flex; flex-direction:column; font-size:0.72rem;">
+              <span style="font-weight:700;">${r.guard_name || 'مامور کشیک'}</span>
+              <span style="font-size:0.65rem; color:var(--text-muted);">${r.guard_shift || ''}</span>
+            </div>
+          </td>
+          <td>${statusBadgeHtml}</td>
+          <td class="text-center">${actionsHtml}</td>
+        `;
+      }
       recordsTbody.appendChild(tr);
     });
 
@@ -449,7 +512,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateKnownNamesDatalist();
   }
 
-  // تعاملات فیلترها
+  // ریستایز پنجره برای سوئیچ پویا بین جدول و کارت
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      loadData();
+    }, 200);
+  });
+
+  // فیلترها
   selectDatePreset.addEventListener('change', (e) => {
     const val = e.target.value;
     dayStepperGroup.classList.toggle('hidden', val !== 'TODAY');
@@ -501,15 +573,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('info', 'فیلترهای جستجو ریست شدند.');
   });
 
-  // بستن مودال‌ها
   document.querySelectorAll('[data-close]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.getElementById(btn.getAttribute('data-close')).classList.add('hidden');
     });
   });
 
-  // --- ثبت تردد جدید ---
-  document.getElementById('btn-open-entry').addEventListener('click', () => {
+  // ثبت تردد جدید
+  function openNewEntryModal() {
     const now = new Date();
     document.getElementById('entry-error-msg').classList.add('hidden');
     autofillIndicator.classList.add('hidden');
@@ -520,8 +591,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('input-entry-date').value = Jalali.formatJalaliDate(now);
     document.getElementById('input-entry-time').value = Jalali.formatTime(now);
     modalEntry.classList.remove('hidden');
-    setTimeout(() => p1.focus(), 100);
-  });
+    setTimeout(() => p1.focus(), 150);
+  }
+
+  document.getElementById('btn-open-entry')?.addEventListener('click', openNewEntryModal);
+  document.getElementById('btn-mobile-fab-entry')?.addEventListener('click', openNewEntryModal);
 
   document.getElementById('btn-entry-date-today').addEventListener('click', () => {
     document.getElementById('input-entry-date').value = Jalali.formatJalaliDate(new Date());
@@ -549,7 +623,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (entryTrafficType === 'VEHICLE') {
       if (p1Val.length !== 2 || p2Val.length !== 3 || cityVal.length !== 2) {
-        err.textContent = 'لطفاً ارقام پلاک خودرو را به‌طور کامل وارد فرمایید (۲ رقم، حرف، ۳ رقم، ۲ رقم شهر).';
+        err.textContent = 'لطفاً ارقام پلاک خودرو را به‌طور کامل وارد فرمایید.';
         err.classList.remove('hidden');
         return;
       }
@@ -579,7 +653,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       modalEntry.classList.add('hidden');
-      showToast('success', `ورود (${person}) با موفقیت ثبت شد و در حافظه تردد ذخیره گردید.`);
+      showToast('success', `ورود (${person}) ثبت شد.`);
       await loadData();
     } catch (ex) {
       err.textContent = ex.message;
@@ -587,7 +661,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- ثبت خروج ---
+  // ثبت خروج
   async function openExitModal(id) {
     const records = await DB.getRecords();
     const record = records.find(r => r.id === id);
@@ -639,7 +713,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- ویرایش تردد ---
+  // ویرایش تردد
   const editStatusSelect = document.getElementById('edit-status');
   const editExitFields = document.getElementById('edit-exit-fields');
   const editTrafficType = document.getElementById('edit-traffic-type');
@@ -748,7 +822,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- حذف تردد ---
+  // حذف تردد
   function openDeleteModal(id) {
     document.getElementById('delete-target-id').value = id;
     modalDeleteConfirm.classList.remove('hidden');
@@ -766,7 +840,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // --- مدیریت ماموران و تب‌های تنظیمات ---
+  // مدیریت ماموران و تب‌های تنظیمات
   async function populateGuardsDropdowns() {
     const guards = await DB.getGuards();
     const activeId = DB.getActiveGuardId();
@@ -810,11 +884,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderProfilesTab() {
     const profiles = DB.getLocalProfiles();
     const list = Object.values(profiles);
-    document.getElementById('profiles-summary-info').textContent = `تعداد مراجعین ذخیره‌شده در حافظه: ${Jalali.toPersianDigits(list.length)} مورد`;
+    document.getElementById('profiles-summary-info').textContent = `تعداد مراجعین ذخیره‌شده: ${Jalali.toPersianDigits(list.length)} مورد`;
 
     const container = document.getElementById('profiles-list-container');
     if (list.length === 0) {
-      container.innerHTML = '<div style="font-size:0.75rem; color:var(--text-muted); padding:0.5rem;">حافظه خالی است. با ثبت اولین تردد، مشخصات ذخیره می‌شود.</div>';
+      container.innerHTML = '<div style="font-size:0.75rem; color:var(--text-muted); padding:0.5rem;">حافظه خالی است.</div>';
       return;
     }
 
@@ -865,7 +939,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hours = document.getElementById('new-guard-hours').value.trim();
 
     if (!name || !shift) {
-      showToast('error', 'لطفاً نام مامور و عنوان شیفت را وارد فرمایید.');
+      showToast('error', 'لطفاً نام مامور و شیفت را وارد کنید.');
       return;
     }
 
@@ -874,10 +948,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('new-guard-shift').value = '';
     document.getElementById('new-guard-hours').value = '';
     await populateGuardsDropdowns();
-    showToast('success', `مامور جدید اضافه شد.`);
+    showToast('success', 'مامور جدید اضافه شد.');
   });
 
-  // اتصال به دیتابیس ابری
+  // دیتابیس ابری
   formCloudDb.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = document.getElementById('input-db-url').value.trim();
@@ -901,7 +975,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await DB.initCloudTables();
       await DB.syncProfiles();
-      resultBox.textContent = '✓ اتصال با موفقیت برقرار شد و جداول همگام‌سازی گردیدند.';
+      resultBox.textContent = '✓ اتصال با موفقیت برقرار و همگام‌سازی شد.';
       resultBox.style.color = 'var(--emerald)';
       resultBox.style.borderColor = 'var(--emerald)';
       updateDbIndicator();
@@ -927,7 +1001,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadData();
   });
 
-  // پشتیبان‌گیری
+  // بکاپ
   document.getElementById('btn-export-backup').addEventListener('click', async () => {
     const records = await DB.getRecords();
     const guards = await DB.getGuards();
@@ -941,7 +1015,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    showToast('success', 'فایل پشتیبان کامل دانلود شد.');
+    showToast('success', 'فایل پشتیبان دانلود شد.');
   });
 
   // راه‌اندازی اولیه
