@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>سامانه جامع ثبت و کنترل تردد انتظامات و حراست</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- هدر اصلی برنامه -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <h1 class="brand-title">سامانه ثبت و کنترل تردد انتظامات</h1>
+          <p class="brand-subtitle">حراست و امنیت پردیس دانشگاه</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- نشانگر دیتابیس -->
+        <div id="db-status-indicator" class="db-status-badge is-local" title="وضعیت ارتباط پایگاه داده">
+          <span class="status-dot"></span>
+          <span id="db-status-text">دیتابیس محلی (LocalStorage)</span>
+        </div>
+
+        <!-- انتخاب مامور شیفت -->
+        <div class="active-guard-widget">
+          <span class="status-dot"></span>
+          <label for="select-active-guard">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            مامور کشیک:
+          </label>
+          <select id="select-active-guard" class="guard-select"></select>
+        </div>
+
+        <!-- دکمه دریافت نسخه پشتیبان -->
+        <button id="btn-export-backup" class="btn btn-secondary" title="دریافت فایل پشتیبان JSON">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>پشتیبان</span>
+        </button>
+
+        <!-- دکمه تنظیمات -->
+        <button id="btn-open-settings" class="btn btn-secondary" title="تنظیمات ماموران حراست و دیتابیس">
+          <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>تنظیمات</span>
+        </button>
+
+        <!-- دکمه ثبت تردد -->
+        <button id="btn-open-entry" class="btn btn-primary">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>ثبت تردد جدید</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- محتوای اصلی -->
+  <main class="main-content">
+    <!-- کارت‌های آمار سریع -->
+    <section class="stats-grid">
+      <div class="stat-card stat-card-amber">
+        <div>
+          <span class="stat-label">حاضرین در پردیس (فعال)</span>
+          <div class="stat-value-group">
+            <span id="stat-active-count" class="stat-value">۰</span>
+            <span class="stat-unit">مورد</span>
+          </div>
+        </div>
+        <div class="stat-icon-wrapper">
+          <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card-blue">
+        <div>
+          <span class="stat-label">کل ورودی‌های بازه انتخابی</span>
+          <div class="stat-value-group">
+            <span id="stat-total-count" class="stat-value">۰</span>
+            <span class="stat-unit">تردد</span>
+          </div>
+        </div>
+        <div class="stat-icon-wrapper">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card-purple">
+        <div>
+          <span class="stat-label">تردد پرسنل دانشگاه</span>
+          <div class="stat-value-group">
+            <span id="stat-staff-count" class="stat-value">۰</span>
+            <span class="stat-unit">مورد</span>
+          </div>
+        </div>
+        <div class="stat-icon-wrapper">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+      </div>
+
+      <div class="stat-card stat-card-emerald">
+        <div>
+          <span class="stat-label">خروج‌های ثبت‌شده</span>
+          <div class="stat-value-group">
+            <span id="stat-exited-count" class="stat-value">۰</span>
+            <span class="stat-unit">مورد</span>
+          </div>
+        </div>
+        <div class="stat-icon-wrapper">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- پنل فیلترها و جستجو -->
+    <section class="filter-panel">
+      <div class="filter-top-row">
+        <div class="date-presets-group">
+          <div style="display:flex; align-items:center; gap:0.35rem;">
+            <svg class="svg-icon" style="color:var(--text-muted);" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <select id="select-date-preset" class="select-control" style="width: auto; min-width: 135px;">
+              <option value="TODAY">امروز</option>
+              <option value="YESTERDAY">دیروز</option>
+              <option value="LAST_7_DAYS">۷ روز گذشته</option>
+              <option value="THIS_MONTH">این ماه</option>
+              <option value="CUSTOM_DATE">انتخاب تاریخ دستی</option>
+              <option value="ALL">همه تاریخ‌ها</option>
+            </select>
+          </div>
+
+          <div id="day-stepper-group" class="date-presets-group">
+            <button id="btn-prev-day" class="btn btn-secondary-sm">روز قبل</button>
+            <span id="display-jalali-date" style="font-size:0.8rem; font-weight:700; padding:0 0.35rem;">---</span>
+            <button id="btn-next-day" class="btn btn-secondary-sm">روز بعد</button>
+          </div>
+
+          <div id="custom-date-container" class="hidden" style="display:flex; align-items:center; gap:0.3rem;">
+            <input type="text" id="input-custom-date" class="form-control" style="width: 105px; text-align:center;" placeholder="1403/01/01" />
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:0.35rem;">
+            <svg class="svg-icon" style="color:var(--text-muted);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <select id="select-time-filter" class="select-control" style="width: auto; min-width: 145px;">
+              <option value="ALL">همه ساعات روز</option>
+              <option value="MORNING">شیفت صبح (۰۶:۰۰ تا ۱۴:۰۰)</option>
+              <option value="EVENING">شیفت عصر (۱۴:۰۰ تا ۲۲:۰۰)</option>
+              <option value="NIGHT">شیفت شب (۲۲:۰۰ تا ۰۶:۰۰)</option>
+              <option value="CUSTOM">بازه زمانی دلخواه</option>
+            </select>
+          </div>
+
+          <div id="custom-time-range" class="time-range-group hidden">
+            <input type="text" id="time-from" class="form-control time-range-input" placeholder="00:00" maxlength="5" />
+            <span style="font-size:0.75rem; color:var(--text-muted);">تا</span>
+            <input type="text" id="time-to" class="form-control time-range-input" placeholder="23:59" maxlength="5" />
+          </div>
+        </div>
+      </div>
+
+      <!-- شبکه فیلترهای دقیق -->
+      <div class="filter-grid">
+        <div class="filter-item">
+          <label class="filter-label">جستجوی متنی (نام، مقصد، مدل):</label>
+          <div class="search-box">
+            <input type="text" id="input-search" placeholder="نام، مقصد یا مشخصات..." />
+          </div>
+        </div>
+
+        <div class="filter-item">
+          <label class="filter-label">جستجوی پلاک:</label>
+          <div class="plate-wrapper">
+            <div id="search-plate-container" class="iran-plate-input is-search plate-theme-white">
+              <div class="plate-blue-strip">
+                <div class="iran-flag-icon">
+                  <span class="flag-green"></span>
+                  <span class="flag-white"></span>
+                  <span class="flag-red"></span>
+                </div>
+                <span class="plate-country-code">I.R.</span>
+              </div>
+              <input type="text" id="search-plate-p1" class="plate-digit-box w-2digit" placeholder="۱۲" maxlength="2" />
+              <select id="search-plate-ltr" class="plate-letter-box">
+                <option value="ALL">همه</option>
+                <option value="ب">ب</option>
+                <option value="ج">ج</option>
+                <option value="د">د</option>
+                <option value="س">س</option>
+                <option value="ص">ص</option>
+                <option value="ط">ط</option>
+                <option value="ق">ق</option>
+                <option value="ل">ل</option>
+                <option value="م">م</option>
+                <option value="ن">ن</option>
+                <option value="و">و</option>
+                <option value="هـ">هـ</option>
+                <option value="ی">ی</option>
+                <option value="معلولین">♿</option>
+                <option value="ت">ت (تاکسی)</option>
+                <option value="ع">ع (عمومی)</option>
+                <option value="ک">ک (کشاورزی)</option>
+                <option value="پ">پ (پلیس)</option>
+                <option value="ث">ث (سپاه)</option>
+                <option value="ز">ز (وزارت دفاع)</option>
+                <option value="ف">ف (ستاد کل)</option>
+                <option value="الف">الف (دولتی)</option>
+                <option value="تشریفات">تشریفات</option>
+                <option value="ش">ش (ارتش)</option>
+                <option value="D">D (دیپلماتیک)</option>
+                <option value="S">S (سفارت)</option>
+              </select>
+              <input type="text" id="search-plate-p2" class="plate-digit-box w-3digit" placeholder="۳۴۵" maxlength="3" />
+              <div class="plate-city-box">
+                <span class="plate-iran-tag">ایران</span>
+                <input type="text" id="search-plate-city" class="plate-digit-box w-city" placeholder="۶۷" maxlength="2" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-item">
+          <label class="filter-label">نوع مراجع:</label>
+          <select id="select-filter-type" class="select-control">
+            <option value="ALL">همه انواع مراجع</option>
+            <option value="ONLY_VEHICLE">فقط تردد خودرویی</option>
+            <option value="ONLY_PEDESTRIAN">فقط عابر پیاده</option>
+            <option value="CAT_STAFF">پرسنل و اساتید</option>
+            <option value="CAT_GUEST">ارباب‌رجوع و مهمان</option>
+          </select>
+        </div>
+
+        <!-- فیلتر جدید نوع وسیله نقلیه -->
+        <div class="filter-item">
+          <label class="filter-label">دسته خودرو:</label>
+          <select id="select-filter-veh-category" class="select-control">
+            <option value="ALL">همه دسته‌ها</option>
+            <option value="سواری">سواری</option>
+            <option value="وانت">وانت / باربری سبک</option>
+            <option value="مینی‌بوس">مینی‌بوس</option>
+            <option value="اتوبوس">اتوبوس</option>
+            <option value="کامیونت">کامیونت / خاور</option>
+            <option value="کامیون">کامیون سنگین / تریلی</option>
+            <option value="ون">ون</option>
+            <option value="موتورسیکلت">موتورسیکلت</option>
+            <option value="سایر">سایر وسایل نقلیه</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label class="filter-label">مامور ثبت‌کننده:</label>
+          <select id="select-filter-guard" class="select-control">
+            <option value="ALL">همه ماموران</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label class="filter-label">وضعیت حضور:</label>
+          <select id="select-status" class="select-control">
+            <option value="ALL">همه وضعیت‌ها</option>
+            <option value="ACTIVE">حاضر در دانشگاه</option>
+            <option value="EXITED">خارج‌شده‌ها</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <button id="btn-reset-filters" class="btn btn-reset" title="پاکسازی تمامی فیلترها" style="height: 35px; width: 100%;">
+            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            <span>ریست فیلترها</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- جدول داده‌ها -->
+    <section class="table-container">
+      <div id="table-loading" class="loading-overlay hidden">در حال دریافت اطلاعات...</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="text-center w-12">#</th>
+            <th>نوع مراجع</th>
+            <th>پلاک / تردد</th>
+            <th>نام و مشخصات</th>
+            <th>دسته و مدل خودرو</th>
+            <th>ورود</th>
+            <th>خروج</th>
+            <th>علت مراجعه و مقصد</th>
+            <th>مامور ثبت‌کننده</th>
+            <th>وضعیت</th>
+            <th class="text-center">عملیات</th>
+          </tr>
+        </thead>
+        <tbody id="records-tbody"></tbody>
+      </table>
+
+      <div id="table-empty-state" class="empty-state hidden">
+        <svg class="svg-icon" style="width:36px; height:36px; color:var(--text-muted);" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <p class="empty-title">هیچ رکوردی یافت نشد</p>
+        <p class="empty-subtitle">می‌توانید فیلترها را ریست کنید یا تردد جدیدی ثبت نمایید.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- مودال ثبت ورود جدید -->
+  <div id="modal-entry" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          ثبت ورود جدید
+        </span>
+        <button class="modal-close" data-close="modal-entry">&times;</button>
+      </div>
+
+      <form id="form-new-entry" class="modal-form">
+        <div id="entry-error-msg" class="form-error hidden"></div>
+        <div id="autofill-indicator" class="autofill-banner hidden">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span>اطلاعات مراجع از حافظه تردد فراخوانی و تکمیل شد.</span>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">نحوه تردد:</label>
+            <div class="segmented-control">
+              <button type="button" id="btn-toggle-vehicle" class="segmented-btn active">
+                <svg class="svg-icon" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                با خودرو
+              </button>
+              <button type="button" id="btn-toggle-pedestrian" class="segmented-btn">
+                <!-- آیکون اصلاح شده و مینیمال عابر پیاده -->
+                <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>
+                عابر پیاده
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="input-person-category" class="form-label">نوع مراجع / وابستگی:</label>
+            <select id="input-person-category" class="select-control" required>
+              <option value="STAFF">کارمند / پرسنل دانشگاه</option>
+              <option value="FACULTY">استاد / هیئت علمی</option>
+              <option value="STUDENT">دانشجو</option>
+              <option value="GUEST" selected>ارباب‌رجوع / مهمان</option>
+              <option value="CONTRACTOR">پیمانکار / خدمات</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- بخش پلاک خودرو -->
+        <div id="entry-plate-section" class="form-group">
+          <label class="form-label">شماره پلاک ملی خودرو:</label>
+          <div class="plate-wrapper">
+            <div id="modal-plate-container" class="iran-plate-input plate-theme-white">
+              <div class="plate-blue-strip">
+                <div class="iran-flag-icon">
+                  <span class="flag-green"></span>
+                  <span class="flag-white"></span>
+                  <span class="flag-red"></span>
+                </div>
+                <span class="plate-country-code">I.R. IRAN</span>
+              </div>
+              <input type="text" id="plate-p1" class="plate-digit-box w-2digit" placeholder="۱۲" maxlength="2" />
+              <select id="plate-ltr" class="plate-letter-box">
+                <option value="ب" selected>ب</option>
+                <option value="ج">ج</option>
+                <option value="د">د</option>
+                <option value="س">س</option>
+                <option value="ص">ص</option>
+                <option value="ط">ط</option>
+                <option value="ق">ق</option>
+                <option value="ل">ل</option>
+                <option value="م">م</option>
+                <option value="ن">ن</option>
+                <option value="و">و</option>
+                <option value="هـ">هـ</option>
+                <option value="ی">ی</option>
+                <option value="معلولین">♿ معلولین</option>
+                <option value="ت">ت (تاکسی)</option>
+                <option value="ع">ع (عمومی)</option>
+                <option value="ک">ک (کشاورزی)</option>
+                <option value="پ">پ (پلیس)</option>
+                <option value="ث">ث (سپاه)</option>
+                <option value="ز">ز (وزارت دفاع)</option>
+                <option value="ف">ف (ستاد کل)</option>
+                <option value="الف">الف (دولتی)</option>
+                <option value="تشریفات">تشریفات</option>
+                <option value="ش">ش (ارتش)</option>
+                <option value="D">D (دیپلماتیک)</option>
+                <option value="S">S (سفارت)</option>
+              </select>
+              <input type="text" id="plate-p2" class="plate-digit-box w-3digit" placeholder="۳۴۵" maxlength="3" />
+              <div class="plate-city-box">
+                <span class="plate-iran-tag">ایران</span>
+                <input type="text" id="plate-city" class="plate-digit-box w-city" placeholder="۶۷" maxlength="2" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="input-person-name" class="form-label">نام و نام خانوادگی:</label>
+            <input type="text" id="input-person-name" class="form-control" placeholder="مثال: علیرضا محمدی" required autocomplete="off" list="known-names-list" />
+            <datalist id="known-names-list"></datalist>
+          </div>
+
+          <!-- فیلد جدید: دسته بندی نوع خودرو -->
+          <div class="form-group" id="entry-vehicle-category-group">
+            <label for="input-vehicle-category" class="form-label">نوع وسیله نقلیه (دسته):</label>
+            <select id="input-vehicle-category" class="select-control">
+              <option value="سواری" selected>سواری</option>
+              <option value="وانت">وانت / باربری سبک</option>
+              <option value="مینی‌بوس">مینی‌بوس</option>
+              <option value="اتوبوس">اتوبوس</option>
+              <option value="کامیونت">کامیونت / خاور</option>
+              <option value="کامیون">کامیون سنگین / تریلی</option>
+              <option value="ون">ون</option>
+              <option value="موتورسیکلت">موتورسیکلت</option>
+              <option value="سایر">سایر</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- فیلد مدل خودرو -->
+        <div class="form-group" id="entry-vehicle-model-group">
+          <label for="input-vehicle-model" class="form-label">مدل و مشخصه خودرو (اختیاری):</label>
+          <input type="text" id="input-vehicle-model" class="form-control" placeholder="پژو ۲۰۶، پراید، سمند، آریسان..." list="vehicle-presets" />
+          <datalist id="vehicle-presets">
+            <option value="پژو ۲۰۶">
+            <option value="پژو پارس">
+            <option value="پژو ۴۰۵">
+            <option value="پژو ۲۰۷">
+            <option value="پراید">
+            <option value="سمند / سورن">
+            <option value="دنا / دنا پلاس">
+            <option value="تارا">
+            <option value="تیبا / ساینا / کوئیک">
+            <option value="شاهین">
+            <option value="وانت پراید ۱۵۱">
+            <option value="وانت نیسان زامیاد">
+            <option value="وانت آریسان">
+            <option value="هایما / جک / چری">
+            <option value="موتورسیکلت هوندا">
+          </datalist>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">تاریخ ورود:</label>
+            <div class="input-with-action">
+              <input type="text" id="input-entry-date" class="form-control" placeholder="1403/01/01" required />
+              <button type="button" id="btn-entry-date-today" class="btn btn-secondary-sm">امروز</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ساعت ورود:</label>
+            <div class="input-with-action">
+              <input type="text" id="input-entry-time" class="form-control" placeholder="10:30" maxlength="5" required />
+              <button type="button" id="btn-entry-time-now" class="btn btn-secondary-sm">اکنون</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="input-notes" class="form-label">علت مراجعه / هماهنگ‌کننده / مقصد:</label>
+          <textarea id="input-notes" class="form-control" rows="2" placeholder="مثال: تحویل بار به انبار مرکزی"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-entry">انصراف</button>
+          <button type="submit" class="btn btn-primary">ثبت و ذخیره ورود</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- مودال ثبت خروج -->
+  <div id="modal-exit" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          ثبت خروج مراجع / خودرو
+        </span>
+        <button class="modal-close" data-close="modal-exit">&times;</button>
+      </div>
+
+      <form id="form-record-exit" class="modal-form">
+        <input type="hidden" id="exit-record-id" />
+        <div class="exit-summary-box">
+          <div>نام مراجع: <strong id="exit-driver-name">--</strong></div>
+          <div style="margin-top:0.35rem;">مشخصه تردد: <span id="exit-plate-badge">--</span></div>
+          <div style="margin-top:0.35rem; color:var(--text-muted); font-size:0.72rem;">زمان ورود: <span id="exit-entry-time-info">--</span></div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">تاریخ خروج:</label>
+            <div class="input-with-action">
+              <input type="text" id="input-exit-date" class="form-control" required />
+              <button type="button" id="btn-exit-date-today" class="btn btn-secondary-sm">امروز</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ساعت خروج:</label>
+            <div class="input-with-action">
+              <input type="text" id="input-exit-time" class="form-control" maxlength="5" required />
+              <button type="button" id="btn-exit-time-now" class="btn btn-secondary-sm">اکنون</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-exit">انصراف</button>
+          <button type="submit" class="btn btn-emerald">تایید و ثبت خروج</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- مودال ویرایش تردد -->
+  <div id="modal-edit" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          ویرایش مشخصات تردد
+        </span>
+        <button class="modal-close" data-close="modal-edit">&times;</button>
+      </div>
+
+      <form id="form-edit-record" class="modal-form">
+        <input type="hidden" id="edit-record-id" />
+        <div id="edit-error-msg" class="form-error hidden"></div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">نحوه تردد:</label>
+            <select id="edit-traffic-type" class="select-control">
+              <option value="VEHICLE">با خودرو</option>
+              <option value="PEDESTRIAN">عابر پیاده / بدون وسیله</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">نوع مراجع:</label>
+            <select id="edit-person-category" class="select-control">
+              <option value="STAFF">کارمند / پرسنل دانشگاه</option>
+              <option value="FACULTY">استاد / هیئت علمی</option>
+              <option value="STUDENT">دانشجو</option>
+              <option value="GUEST">ارباب‌رجوع / مهمان</option>
+              <option value="CONTRACTOR">پیمانکار / خدمات</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="edit-plate-section" class="form-group">
+          <label class="form-label">شماره پلاک ملی:</label>
+          <div class="plate-wrapper">
+            <div id="edit-plate-container" class="iran-plate-input plate-theme-white">
+              <div class="plate-blue-strip">
+                <div class="iran-flag-icon">
+                  <span class="flag-green"></span>
+                  <span class="flag-white"></span>
+                  <span class="flag-red"></span>
+                </div>
+                <span class="plate-country-code">I.R. IRAN</span>
+              </div>
+              <input type="text" id="edit-plate-p1" class="plate-digit-box w-2digit" placeholder="۱۲" maxlength="2" />
+              <select id="edit-plate-ltr" class="plate-letter-box">
+                <option value="ب">ب</option>
+                <option value="ج">ج</option>
+                <option value="د">د</option>
+                <option value="س">س</option>
+                <option value="ص">ص</option>
+                <option value="ط">ط</option>
+                <option value="ق">ق</option>
+                <option value="ل">ل</option>
+                <option value="م">م</option>
+                <option value="ن">ن</option>
+                <option value="و">و</option>
+                <option value="هـ">هـ</option>
+                <option value="ی">ی</option>
+                <option value="معلولین">♿ معلولین</option>
+                <option value="ت">ت (تاکسی)</option>
+                <option value="ع">ع (عمومی)</option>
+                <option value="ک">ک (کشاورزی)</option>
+                <option value="پ">پ (پلیس)</option>
+                <option value="ث">ث (سپاه)</option>
+                <option value="ز">ز (وزارت دفاع)</option>
+                <option value="ف">ف (ستاد کل)</option>
+                <option value="الف">الف (دولتی)</option>
+                <option value="تشریفات">تشریفات</option>
+                <option value="ش">ش (ارتش)</option>
+                <option value="D">D (دیپلماتیک)</option>
+                <option value="S">S (سفارت)</option>
+              </select>
+              <input type="text" id="edit-plate-p2" class="plate-digit-box w-3digit" placeholder="۳۴۵" maxlength="3" />
+              <div class="plate-city-box">
+                <span class="plate-iran-tag">ایران</span>
+                <input type="text" id="edit-plate-city" class="plate-digit-box w-city" placeholder="۶۷" maxlength="2" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">نام مراجع / راننده:</label>
+            <input type="text" id="edit-person-name" class="form-control" required />
+          </div>
+          <div class="form-group" id="edit-veh-cat-group">
+            <label class="form-label">دسته خودرو:</label>
+            <select id="edit-vehicle-category" class="select-control">
+              <option value="سواری">سواری</option>
+              <option value="وانت">وانت / باربری سبک</option>
+              <option value="مینی‌بوس">مینی‌بوس</option>
+              <option value="اتوبوس">اتوبوس</option>
+              <option value="کامیونت">کامیونت / خاور</option>
+              <option value="کامیون">کامیون سنگین / تریلی</option>
+              <option value="ون">ون</option>
+              <option value="موتورسیکلت">موتورسیکلت</option>
+              <option value="سایر">سایر</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="edit-veh-model-group">
+          <label class="form-label">مدل و مشخصه خودرو:</label>
+          <input type="text" id="edit-vehicle-model" class="form-control" list="vehicle-presets" />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">تاریخ ورود:</label>
+            <input type="text" id="edit-entry-date" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">ساعت ورود:</label>
+            <input type="text" id="edit-entry-time" class="form-control" maxlength="5" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">وضعیت تردد:</label>
+          <select id="edit-status" class="select-control">
+            <option value="ACTIVE">حاضر در دانشگاه (بدون خروج)</option>
+            <option value="EXITED">خارج شده</option>
+          </select>
+        </div>
+
+        <div id="edit-exit-fields" class="form-row-2 hidden">
+          <div class="form-group">
+            <label class="form-label">تاریخ خروج:</label>
+            <input type="text" id="edit-exit-date" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">ساعت خروج:</label>
+            <input type="text" id="edit-exit-time" class="form-control" maxlength="5" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">علت مراجعه / توضیحات:</label>
+          <textarea id="edit-notes" class="form-control" rows="2"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-edit">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- مودال تنظیمات -->
+  <div id="modal-settings" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 580px;">
+      <div class="modal-header">
+        <span class="modal-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          تنظیمات سامانه
+        </span>
+        <button class="modal-close" data-close="modal-settings">&times;</button>
+      </div>
+
+      <div class="settings-tabs">
+        <button type="button" class="settings-tab-btn active" data-tab="tab-guards">ماموران و شیفت‌ها</button>
+        <button type="button" class="settings-tab-btn" data-tab="tab-profiles">بانک مشخصات مراجعین دائمی</button>
+        <button type="button" class="settings-tab-btn" data-tab="tab-cloud-db">دیتابیس ابری Turso</button>
+      </div>
+
+      <!-- تب ماموران -->
+      <div id="tab-guards" class="modal-form">
+        <div style="background:var(--bg-subtle); padding:0.75rem; border-radius:var(--radius-md); border:1px solid var(--border);">
+          <div style="font-size:0.75rem; font-weight:700; margin-bottom:0.5rem;">افزودن مامور جدید:</div>
+          <div class="form-row-2" style="margin-bottom:0.4rem;">
+            <input type="text" id="new-guard-name" class="form-control" placeholder="نام و نام‌خانوادگی مامور..." />
+            <input type="text" id="new-guard-shift" class="form-control" placeholder="عنوان شیفت (مثال: شیفت صبح)" />
+          </div>
+          <div class="form-row-2" style="align-items:center;">
+            <input type="text" id="new-guard-hours" class="form-control" placeholder="ساعات کار (مثال: ۰۶:۰۰ الی ۱۴:۰۰)" />
+            <button type="button" id="btn-add-guard" class="btn btn-primary" style="height:35px; justify-content:center;">افزودن مامور</button>
+          </div>
+        </div>
+
+        <div id="guards-list-container" style="max-height: 180px; overflow-y: auto; margin-top: 0.5rem;"></div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-settings">بستن</button>
+        </div>
+      </div>
+
+      <!-- تب بانک مشخصات مراجعین دائمی -->
+      <div id="tab-profiles" class="modal-form hidden">
+        <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
+          این بانک شامل مشخصات ذخیره شده پلاک‌ها و افرادی است که سامانه آن‌ها را برای تکمیل خودکار (Auto-fill) در حافظه نگه داشته است.
+        </p>
+        <div id="profiles-summary-info" style="font-size:0.78rem; font-weight:700; color:var(--primary);">تعداد مشخصات ذخیره‌شده: ۰ مورد</div>
+        <div id="profiles-list-container" style="max-height: 200px; overflow-y: auto; display:flex; flex-direction:column; gap:0.35rem;"></div>
+        <div class="modal-actions">
+          <button type="button" id="btn-clear-profiles" class="btn btn-reset">پاکسازی کل حافظه مراجعین</button>
+          <button type="button" class="btn btn-secondary" data-close="modal-settings">بستن</button>
+        </div>
+      </div>
+
+      <!-- تب دیتابیس ابری -->
+      <form id="tab-cloud-db" class="modal-form hidden">
+        <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
+          مشخصات دیتابیس ابری <strong>Turso (LibSQL)</strong> را وارد فرمایید تا ترددها و پروفایل‌ها بین تمام گیت‌های حراست همگام‌سازی شوند.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Database URL:</label>
+          <input type="text" id="input-db-url" class="form-control" dir="ltr" placeholder="https://your-db-org.turso.io" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Turso Auth Token:</label>
+          <input type="password" id="input-auth-token" class="form-control" dir="ltr" placeholder="eyJhbGciOi..." />
+        </div>
+
+        <div id="db-connection-result" class="form-error hidden"></div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-disconnect-db" class="btn btn-danger" style="margin-left:auto;">قطع اتصال ابری</button>
+          <button type="button" class="btn btn-secondary" data-close="modal-settings">انصراف</button>
+          <button type="submit" class="btn btn-emerald">تست اتصال و ذخیره</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- مودال تایید حذف -->
+  <div id="modal-delete-confirm" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 380px;">
+      <div class="modal-header">
+        <span class="modal-title" style="color:var(--red);">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          حذف رکورد تردد
+        </span>
+        <button class="modal-close" data-close="modal-delete-confirm">&times;</button>
+      </div>
+      <div class="modal-form">
+        <p style="font-size:0.8rem; line-height:1.6;">آیا از حذف این تردد اطمینان دارید؟ این عملیات غیرقابل بازگشت است.</p>
+        <input type="hidden" id="delete-target-id" />
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-delete-confirm">انصراف</button>
+          <button type="button" id="btn-confirm-delete" class="btn btn-danger">حذف قطعی</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- کانتینر پیام‌های شناور (Toast) -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- اسکریپت‌های تفکیک‌شده برنامه -->
+  <script src="jalali.js"></script>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

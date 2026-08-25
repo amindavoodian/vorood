@@ -1,0 +1,615 @@
+:root {
+  --bg-body: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border: #e2e8f0;
+  --border-dark: #cbd5e1;
+  --border-focus: #2563eb;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-subtle: #eff6ff;
+  --emerald: #059669;
+  --emerald-hover: #047857;
+  --emerald-subtle: #ecfdf5;
+  --amber: #d97706;
+  --amber-subtle: #fffbeb;
+  --red: #dc2626;
+  --red-hover: #b91c1c;
+  --red-subtle: #fef2f2;
+  --purple: #7c3aed;
+  --purple-subtle: #f5f3ff;
+  --indigo: #4f46e5;
+  --indigo-subtle: #eef2ff;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Vazirmatn', Tahoma, sans-serif; }
+body { background-color: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* هدر */
+.app-header {
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  box-shadow: var(--shadow-sm);
+}
+.header-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 0.65rem; }
+.brand-icon {
+  background-color: var(--primary-subtle);
+  color: var(--primary);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+.brand-title { font-size: 0.98rem; font-weight: 800; color: var(--text-main); }
+.brand-subtitle { font-size: 0.72rem; color: var(--text-muted); }
+.header-actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+
+/* نشانگر وضعیت دیتابیس */
+.db-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+.db-status-badge.is-online { border-color: rgba(5, 150, 105, 0.3); color: var(--emerald); background: var(--emerald-subtle); }
+.db-status-badge.is-local { border-color: rgba(217, 119, 6, 0.3); color: var(--amber); background: var(--amber-subtle); }
+
+.active-guard-widget {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+}
+.active-guard-widget label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem; }
+.guard-select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  outline: none;
+  cursor: pointer;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--emerald);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+/* دکمه‌ها */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.48rem 0.85rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  background: none;
+}
+.btn-primary { background-color: var(--primary); color: #ffffff; }
+.btn-primary:hover { background-color: var(--primary-hover); }
+.btn-secondary { background-color: var(--bg-card); color: var(--text-main); border-color: var(--border); }
+.btn-secondary:hover { background-color: var(--bg-subtle); border-color: var(--border-dark); }
+.btn-secondary-sm {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.btn-secondary-sm:hover { background-color: var(--bg-subtle); }
+.btn-emerald { background-color: var(--emerald); color: #fff; }
+.btn-emerald:hover { background-color: var(--emerald-hover); }
+.btn-danger { background-color: var(--red); color: #fff; }
+.btn-danger:hover { background-color: var(--red-hover); }
+.btn-reset { background-color: var(--red-subtle); color: var(--red); border: 1px solid rgba(220, 38, 38, 0.2); }
+.btn-reset:hover { background-color: var(--red); color: #fff; }
+
+.action-group { display: inline-flex; align-items: center; gap: 0.3rem; }
+.btn-action-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-action-icon:hover { border-color: var(--border-dark); color: var(--text-main); }
+.btn-action-icon.exit-btn { color: var(--emerald); border-color: rgba(5, 150, 105, 0.3); background-color: var(--emerald-subtle); }
+.btn-action-icon.exit-btn:hover { background-color: var(--emerald); color: #fff; }
+.btn-action-icon.edit-btn:hover { color: var(--primary); border-color: var(--primary); background-color: var(--primary-subtle); }
+.btn-action-icon.delete-btn:hover { color: var(--red); border-color: var(--red); background-color: var(--red-subtle); }
+
+/* ساختار صفحه */
+.main-content { max-width: 1440px; width: 100%; margin: 0 auto; padding: 1.25rem 1rem; flex: 1; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+.stat-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.9rem 1.15rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.stat-label { font-size: 0.76rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem; font-weight: 500; }
+.stat-value-group { display: flex; align-items: baseline; gap: 0.35rem; }
+.stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-main); line-height: 1; }
+.stat-unit { font-size: 0.72rem; color: var(--text-muted); }
+.stat-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-card-amber .stat-icon-wrapper { background: var(--amber-subtle); color: var(--amber); }
+.stat-card-blue .stat-icon-wrapper { background: var(--primary-subtle); color: var(--primary); }
+.stat-card-emerald .stat-icon-wrapper { background: var(--emerald-subtle); color: var(--emerald); }
+.stat-card-purple .stat-icon-wrapper { background: var(--purple-subtle); color: var(--purple); }
+
+/* سوئیچ وضعیت عابر / خودرو */
+.segmented-control {
+  display: inline-flex;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+}
+.segmented-btn {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+}
+.segmented-btn.active {
+  background-color: var(--bg-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* پنل فیلترها */
+.filter-panel {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  box-shadow: var(--shadow-sm);
+}
+.filter-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.85rem;
+  flex-wrap: wrap;
+}
+.date-presets-group { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.3fr 0.9fr 0.9fr 0.9fr 0.9fr auto;
+  gap: 0.65rem;
+  align-items: flex-end;
+}
+@media (max-width: 1250px) { .filter-grid { grid-template-columns: 1fr 1fr 1fr; } }
+@media (max-width: 768px) { .filter-grid { grid-template-columns: 1fr; } }
+
+.filter-item { display: flex; flex-direction: column; gap: 0.3rem; }
+.filter-label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+
+.search-box { position: relative; display: flex; align-items: center; }
+.search-box input, .form-control, .select-control {
+  width: 100%;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.48rem 0.75rem;
+  color: var(--text-main);
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-box input:focus, .form-control:focus, .select-control:focus { border-color: var(--border-focus); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+.time-range-group { display: flex; align-items: center; gap: 0.3rem; }
+.time-range-input { width: 75px !important; text-align: center; padding: 0.48rem 0.25rem !important; }
+
+/* کامپوننت پلاک استاندارد ملی */
+.plate-wrapper { display: flex; justify-content: center; align-items: center; }
+.iran-plate-input {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1.5px solid #0f172a;
+  border-radius: 5px;
+  height: 42px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+  direction: ltr;
+  background-color: #ffffff;
+}
+.iran-plate-input.is-search { height: 36px; }
+
+.plate-blue-strip {
+  background-color: #1e3a8a;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 5px;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+.iran-flag-icon { width: 13px; height: 8px; display: flex; flex-direction: column; border-radius: 1px; overflow: hidden; }
+.flag-green { background: #15803d; flex: 1; }
+.flag-white { background: #ffffff; flex: 1; }
+.flag-red { background: #b91c1c; flex: 1; }
+.plate-country-code { font-size: 6px; font-weight: 900; font-family: sans-serif; }
+
+.plate-digit-box {
+  background: transparent;
+  border: none;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: inherit;
+  outline: none;
+  padding: 0 2px;
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+}
+.iran-plate-input.is-search .plate-digit-box { font-size: 1rem; }
+.w-2digit { width: 38px; }
+.w-3digit { width: 54px; }
+.w-city { width: 36px; font-size: 1.05rem; }
+.iran-plate-input.is-search .w-2digit { width: 32px; }
+.iran-plate-input.is-search .w-3digit { width: 46px; }
+.iran-plate-input.is-search .w-city { width: 32px; }
+
+.plate-letter-box {
+  border: none;
+  border-radius: 3px;
+  margin: 3px 2px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 0 4px;
+  outline: none;
+  cursor: pointer;
+}
+.iran-plate-input.is-search .plate-letter-box { font-size: 0.78rem; margin: 2px 1px; padding: 0 2px; }
+
+.plate-city-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border-left: 1.5px solid rgba(0, 0, 0, 0.2);
+}
+.plate-iran-tag { font-size: 7px; font-weight: 800; line-height: 1; margin-bottom: -1px; }
+
+/* تم‌های رنگی پلاک */
+.plate-theme-white { background-color: #ffffff; color: #0f172a; border-color: #0f172a; }
+.plate-theme-white .plate-city-box { background-color: #f1f5f9; }
+.plate-theme-white .plate-letter-box { background-color: #0f172a; color: #ffffff; }
+
+.plate-theme-yellow { background-color: #f59e0b; color: #0f172a; border-color: #0f172a; }
+.plate-theme-yellow .plate-city-box { background-color: #d97706; }
+.plate-theme-yellow .plate-letter-box { background-color: #0f172a; color: #f59e0b; }
+
+.plate-theme-green { background-color: #15803d; color: #ffffff; border-color: #052e16; }
+.plate-theme-green .plate-city-box { background-color: #166534; color: #fff; }
+.plate-theme-green .plate-letter-box { background-color: #ffffff; color: #15803d; }
+
+.plate-theme-red { background-color: #dc2626; color: #ffffff; border-color: #450a0a; }
+.plate-theme-red .plate-city-box { background-color: #b91c1c; color: #fff; }
+.plate-theme-red .plate-letter-box { background-color: #ffffff; color: #dc2626; }
+
+.plate-theme-navy { background-color: #1e3a8a; color: #ffffff; border-color: #0f172a; }
+.plate-theme-navy .plate-city-box { background-color: #172554; color: #fff; }
+.plate-theme-navy .plate-letter-box { background-color: #ffffff; color: #1e3a8a; }
+
+.plate-theme-lightblue { background-color: #0284c7; color: #ffffff; border-color: #0c4a6e; }
+.plate-theme-lightblue .plate-city-box { background-color: #0369a1; color: #fff; }
+.plate-theme-lightblue .plate-letter-box { background-color: #ffffff; color: #0284c7; }
+
+/* بج‌های پلاک در جدول */
+.iran-plate-badge {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid rgba(15, 23, 42, 0.4);
+  border-radius: 4px;
+  height: 26px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  direction: ltr;
+  overflow: hidden;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.iran-plate-badge .plate-blue-strip { padding: 1px 3px; }
+.iran-plate-badge .iran-flag-icon { width: 9px; height: 5px; }
+.iran-plate-badge .plate-country-code { font-size: 5px; }
+.iran-plate-badge .plate-nums-box { display: flex; align-items: center; gap: 4px; padding: 0 5px; font-weight: 900; }
+.iran-plate-badge .plate-letter-tag { padding: 0 3px; border-radius: 2px; font-size: 0.72rem; }
+.iran-plate-badge.plate-theme-white .plate-letter-tag { background: #0f172a; color: #fff; }
+.iran-plate-badge.plate-theme-yellow .plate-letter-tag { background: #0f172a; color: #f59e0b; }
+.iran-plate-badge.plate-theme-green .plate-letter-tag { background: #ffffff; color: #15803d; }
+.iran-plate-badge.plate-theme-red .plate-letter-tag { background: #ffffff; color: #dc2626; }
+.iran-plate-badge.plate-theme-navy .plate-letter-tag { background: #ffffff; color: #1e3a8a; }
+.iran-plate-badge.plate-theme-lightblue .plate-letter-tag { background: #ffffff; color: #0284c7; }
+.iran-plate-badge .plate-city-box { padding: 0 3px; }
+.iran-plate-badge .plate-iran-tag { font-size: 5px; }
+
+/* بج عابر پیاده و نوع مراجع */
+.badge-pedestrian {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-dark);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.badge-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.badge-person-staff { background: var(--indigo-subtle); color: var(--indigo); border-color: rgba(79, 70, 229, 0.2); }
+.badge-person-faculty { background: var(--purple-subtle); color: var(--purple); border-color: rgba(124, 58, 237, 0.2); }
+.badge-person-student { background: var(--primary-subtle); color: var(--primary); border-color: rgba(37, 99, 235, 0.2); }
+.badge-person-guest { background: var(--amber-subtle); color: var(--amber); border-color: rgba(217, 119, 6, 0.25); }
+.badge-person-contractor { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+
+/* بنر تکمیل خودکار */
+.autofill-banner {
+  background: var(--emerald-subtle);
+  border: 1px solid rgba(5, 150, 105, 0.3);
+  color: var(--emerald);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.badge-veh-cat {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.badge-veh-model { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+/* جدول داده‌ها */
+.table-container {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+  min-height: 200px;
+  position: relative;
+}
+.data-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.8rem; }
+.data-table th {
+  background-color: var(--bg-subtle);
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+.data-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border); color: var(--text-main); vertical-align: middle; }
+.data-table tbody tr:hover { background-color: rgba(241, 245, 249, 0.6); }
+
+.badge-status { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem; border-radius: 9999px; font-size: 0.68rem; font-weight: 700; }
+.badge-active { background: var(--amber-subtle); color: var(--amber); border: 1px solid rgba(217, 119, 6, 0.25); }
+.badge-exited { background: var(--emerald-subtle); color: var(--emerald); border: 1px solid rgba(5, 150, 105, 0.25); }
+
+/* مودال‌ها */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 530px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-subtle);
+}
+.modal-title { font-weight: 800; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; }
+.modal-close { background: none; border: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer; line-height: 1; }
+.modal-close:hover { color: var(--text-main); }
+.modal-form { padding: 1.15rem; display: flex; flex-direction: column; gap: 0.85rem; overflow-y: auto; }
+.form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-label { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.45rem; margin-top: 0.4rem; }
+.form-error { background: var(--red-subtle); border: 1px solid var(--red); color: var(--red); font-size: 0.72rem; padding: 0.5rem; border-radius: var(--radius-sm); }
+.input-with-action { display: flex; gap: 0.35rem; }
+.input-with-action input { flex: 1; }
+.exit-summary-box { background: var(--bg-subtle); padding: 0.65rem; border-radius: var(--radius-md); font-size: 0.78rem; }
+
+/* تب‌های تنظیمات */
+.settings-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
+.settings-tab-btn {
+  flex: 1;
+  padding: 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-card); }
+.guard-item-row, .profile-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+}
+
+/* توست و وضعیت‌ها */
+.empty-state { padding: 2.5rem 1rem; text-align: center; color: var(--text-muted); }
+.empty-title { font-weight: 700; color: var(--text-main); margin: 0.4rem 0 0.2rem; font-size: 0.85rem; }
+.empty-subtitle { font-size: 0.72rem; }
+
+.toast-container { position: fixed; bottom: 1rem; left: 1rem; z-index: 60; display: flex; flex-direction: column; gap: 0.4rem; }
+.toast {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.toast-success { border-color: var(--emerald); color: var(--emerald); }
+.toast-error { border-color: var(--red); color: var(--red); }
+.toast-info { border-color: var(--primary); color: var(--primary); }
+
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.w-12 { width: 2.8rem; }
+.svg-icon { width: 16px; height: 16px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
