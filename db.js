@@ -1,80 +1,17 @@
 /**
  * db.js
- * لایه جامع پایگاه داده (Turso Cloud + LocalStorage) با سیستم مدیریت کاربران و سطوح دسترسی (RBAC)
+ * لایه جامع پایگاه داده (Turso Cloud + LocalStorage)
+ * مجهز به سیستم ستاپ اولیه مدیر ارشد، احراز هویت پایدار، نشست‌های مستقل و مدیریت سطوح دسترسی (RBAC)
  */
 
 const DB = {
-  STORAGE_KEY: 'campus_guard_records_v7',
-  USERS_KEY: 'campus_guard_users_v7',
-  ACTIVE_USER_KEY: 'campus_guard_active_user_v7',
-  PROFILES_KEY: 'campus_guard_profiles_v7',
-  TURSO_KEY: 'campus_guard_turso_cfg_v7',
+  STORAGE_KEY: 'campus_guard_records_v8',
+  USERS_KEY: 'campus_guard_users_v8',
+  ACTIVE_USER_KEY: 'campus_guard_active_user_v8',
+  PROFILES_KEY: 'campus_guard_profiles_v8',
+  TURSO_KEY: 'campus_guard_turso_cfg_v8',
 
-  // کاربران پیش‌فرض اولیه سامانه
-  defaultUsers: [
-    {
-      id: 'usr_admin',
-      username: 'admin',
-      name: 'مدیر ارشد سامانه',
-      role: 'ADMIN',
-      pin: '1234', // پین‌کد / رمز عبور پیش‌فرض
-      permissions: {
-        read: true,
-        create: true,
-        update: true,
-        delete: true
-      },
-      shiftName: 'مدیریت و نظارت',
-      shiftHours: '۲۴ ساعته'
-    },
-    {
-      id: 'usr_guard_1',
-      username: 'hosseini',
-      name: 'علیرضا حسینی',
-      role: 'GUARD',
-      pin: '1111',
-      permissions: {
-        read: true,
-        create: true,
-        update: true,
-        delete: false
-      },
-      shiftName: 'شیفت صبح',
-      shiftHours: '۰۶:۰۰ الی ۱۴:۰۰'
-    },
-    {
-      id: 'usr_guard_2',
-      username: 'karimi',
-      name: 'محمد کریمی',
-      role: 'GUARD',
-      pin: '2222',
-      permissions: {
-        read: true,
-        create: true,
-        update: true,
-        delete: false
-      },
-      shiftName: 'شیفت عصر',
-      shiftHours: '۱۴:۰۰ الی ۲۲:۰۰'
-    },
-    {
-      id: 'usr_guard_3',
-      username: 'moradi',
-      name: 'مهدی مرادی',
-      role: 'GUARD',
-      pin: '3333',
-      permissions: {
-        read: true,
-        create: true,
-        update: false,
-        delete: false
-      },
-      shiftName: 'شیفت شب',
-      shiftHours: '۲۲:۰۰ الی ۰۶:۰۰'
-    }
-  ],
-
-  // --- تنظیمات دیتابیس ابری Turso ---
+  // --- تنظیمات دیتابیس ابری Turso (LibSQL) ---
   getTursoConfig() {
     try {
       return JSON.parse(localStorage.getItem(this.TURSO_KEY) || 'null');
@@ -147,7 +84,7 @@ const DB = {
   async initCloudTables() {
     if (!this.isCloudConfigured()) return;
 
-    // جدول رکوردها با تفکیک مامور ورود و مامور خروج
+    // جدول رکوردهای تردد با تفکیک مامور ورود و مامور خروج
     const createRecordsTable = `
       CREATE TABLE IF NOT EXISTS campus_records (
         id INTEGER PRIMARY KEY,
@@ -176,7 +113,7 @@ const DB = {
       );
     `;
 
-    // جدول کاربران و نگهبانان با مجوزها
+    // جدول کاربران و نگهبانان با مجوزهای تفکیکی
     const createUsersTable = `
       CREATE TABLE IF NOT EXISTS campus_users (
         id TEXT PRIMARY KEY,
@@ -186,11 +123,12 @@ const DB = {
         pin TEXT,
         permissions TEXT,
         shift_name TEXT,
-        shift_hours TEXT
+        shift_hours TEXT,
+        created_at TEXT
       );
     `;
 
-    // جدول مراجعین و پلاک‌های پرتکرار برای تکمیل خودکار
+    // جدول مراجعین پرتکرار برای تکمیل خودکار (Auto-fill)
     const createProfilesTable = `
       CREATE TABLE IF NOT EXISTS campus_profiles (
         profile_key TEXT PRIMARY KEY,
@@ -233,18 +171,14 @@ const DB = {
   },
 
   // ==========================================
-  // مدیریت کاربران و سیستم کنترل دسترسی (RBAC)
+  // مدیریت کاربران و بررسی وضعیت راه‌اندازی (Setup)
   // ==========================================
   getLocalUsers() {
     try {
       const raw = localStorage.getItem(this.USERS_KEY);
-      if (!raw) {
-        this.saveLocalUsers(this.defaultUsers);
-        return this.defaultUsers;
-      }
-      return JSON.parse(raw);
+      return raw ? JSON.parse(raw) : [];
     } catch {
-      return this.defaultUsers;
+      return [];
     }
   },
 
@@ -278,6 +212,65 @@ const DB = {
     return this.getLocalUsers();
   },
 
+  // بررسی اینکه آیا سیستم برای بار اول باز شده و نیاز به ثبت‌نام مدیر اصلی دارد
+  async isSetupRequired() {
+    const users = await this.getUsers();
+    return users.length === 0;
+  },
+
+  // ثبت‌نام اولین مدیر ارشد سیستم (Super Admin Setup)
+  async setupInitialAdmin(adminData) {
+    const cleanPin = Jalali.toLatinDigits(adminData.pin || '').trim();
+    if (!adminData.name || !adminData.username || !cleanPin) {
+      throw new Error('لطفاً تمامی فیلدهای نام، نام کاربری و رمز عبور را تکمیل فرمایید.');
+    }
+
+    const adminUser = {
+      id: 'usr_admin_root',
+      username: adminData.username.trim().toLowerCase(),
+      name: adminData.name.trim(),
+      role: 'ADMIN',
+      pin: cleanPin,
+      permissions: {
+        read: true,
+        create: true,
+        update: true,
+        delete: true
+      },
+      shiftName: adminData.shiftName || 'مدیریت کل سیستم',
+      shiftHours: '۲۴ ساعته',
+      createdAt: new Date().toISOString()
+    };
+
+    if (this.isCloudConfigured()) {
+      try {
+        await this.executeTurso(`
+          INSERT INTO campus_users (id, username, name, role, pin, permissions, shift_name, shift_hours, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          adminUser.id,
+          adminUser.username,
+          adminUser.name,
+          adminUser.role,
+          adminUser.pin,
+          JSON.stringify(adminUser.permissions),
+          adminUser.shiftName,
+          adminUser.shiftHours,
+          adminUser.createdAt
+        ]);
+      } catch (e) {
+        console.error('خطای ایجاد مدیر در دیتابیس ابری:', e);
+      }
+    }
+
+    this.saveLocalUsers([adminUser]);
+    this.setCurrentUser(adminUser);
+    return adminUser;
+  },
+
+  // ==========================================
+  // مدیریت نشست (Session) و احراز هویت
+  // ==========================================
   getCurrentUser() {
     try {
       const raw = localStorage.getItem(this.ACTIVE_USER_KEY);
@@ -287,14 +280,15 @@ const DB = {
     } catch (e) {
       console.error(e);
     }
-    // اگر کاربری لاگین نبود، ادمین پیش‌فرض را بازمی‌گردانیم
-    const defaultUser = this.getLocalUsers()[0] || this.defaultUsers[0];
-    this.setCurrentUser(defaultUser);
-    return defaultUser;
+    return null;
   },
 
   setCurrentUser(user) {
-    localStorage.setItem(this.ACTIVE_USER_KEY, JSON.stringify(user));
+    if (!user) {
+      localStorage.removeItem(this.ACTIVE_USER_KEY);
+    } else {
+      localStorage.setItem(this.ACTIVE_USER_KEY, JSON.stringify(user));
+    }
   },
 
   logout() {
@@ -304,10 +298,17 @@ const DB = {
   async authenticate(usernameOrId, pin) {
     const users = await this.getUsers();
     const cleanPin = Jalali.toLatinDigits(pin || '').trim();
-    const user = users.find(u => (u.username === usernameOrId || u.id === usernameOrId) && u.pin === cleanPin);
+    const cleanQuery = String(usernameOrId || '').trim().toLowerCase();
+
+    const user = users.find(u => 
+      (u.id === usernameOrId || u.username.toLowerCase() === cleanQuery) && 
+      String(u.pin).trim() === cleanPin
+    );
+
     if (!user) {
-      throw new Error('نام کاربری یا رمز عبور (پین‌کد) اشتباه است.');
+      throw new Error('نام کاربری یا رمز عبور (پین‌کد) واردشده نادرست است.');
     }
+
     this.setCurrentUser(user);
     return user;
   },
@@ -324,41 +325,42 @@ const DB = {
 
   async saveUser(userData) {
     const currentUser = this.getCurrentUser();
-    if (currentUser.role !== 'ADMIN') {
-      throw new Error('تنها مدیر ارشد مجاز به ایجاد یا ویرایش کاربران و تغییر سطوح دسترسی است.');
+    if (!currentUser || currentUser.role !== 'ADMIN') {
+      throw new Error('تنها مدیر ارشد سامانه مجاز به افزودن یا ویرایش کاربران و تعیین سطوح دسترسی است.');
     }
 
     const users = await this.getUsers();
     const isEdit = !!userData.id;
     const userId = isEdit ? userData.id : 'usr_' + Date.now();
+    const targetUsername = userData.username.trim().toLowerCase();
 
-    // اعتبارسنجی یکتایی نام کاربری
-    const existing = users.find(u => u.username === userData.username && u.id !== userId);
+    // بررسی یکتایی نام کاربری
+    const existing = users.find(u => u.username.toLowerCase() === targetUsername && u.id !== userId);
     if (existing) {
-      throw new Error('این نام کاربری قبلاً برای کاربر دیگری ثبت شده است.');
+      throw new Error('این نام کاربری قبلاً در سامانه ثبت شده است. لطفاً نام دیگری انتخاب نمایید.');
     }
 
     const newUserObj = {
       id: userId,
-      username: userData.username.trim().toLowerCase(),
+      username: targetUsername,
       name: userData.name.trim(),
       role: userData.role || 'GUARD',
       pin: Jalali.toLatinDigits(userData.pin || '1234').trim(),
       permissions: {
-        read: !!userData.permissions?.read,
-        create: !!userData.permissions?.create,
-        update: !!userData.permissions?.update,
-        delete: !!userData.permissions?.delete
+        read: userData.role === 'ADMIN' ? true : !!userData.permissions?.read,
+        create: userData.role === 'ADMIN' ? true : !!userData.permissions?.create,
+        update: userData.role === 'ADMIN' ? true : !!userData.permissions?.update,
+        delete: userData.role === 'ADMIN' ? true : !!userData.permissions?.delete
       },
-      shiftName: userData.shiftName || 'شیفت عمومی',
+      shiftName: userData.shiftName || (userData.role === 'ADMIN' ? 'مدیریت و نظارت' : 'شیفت عمومی'),
       shiftHours: userData.shiftHours || '۰۸:۰۰ الی ۱۶:۰۰'
     };
 
     if (this.isCloudConfigured()) {
       try {
         await this.executeTurso(`
-          INSERT INTO campus_users (id, username, name, role, pin, permissions, shift_name, shift_hours)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO campus_users (id, username, name, role, pin, permissions, shift_name, shift_hours, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(id) DO UPDATE SET
             username=excluded.username,
             name=excluded.name,
@@ -375,7 +377,8 @@ const DB = {
           newUserObj.pin,
           JSON.stringify(newUserObj.permissions),
           newUserObj.shiftName,
-          newUserObj.shiftHours
+          newUserObj.shiftHours,
+          new Date().toISOString()
         ]);
       } catch (e) {
         console.error('خطای ذخیره کاربر در سرور ابری:', e);
@@ -391,7 +394,7 @@ const DB = {
     }
     this.saveLocalUsers(localList);
 
-    // در صورتی که کاربر جاری خودش را ویرایش کرده بود، نشست او به‌روزرسانی شود
+    // به‌روزرسانی نشست جاری در صورت ویرایش کاربر فعال
     if (currentUser.id === userId) {
       this.setCurrentUser(newUserObj);
     }
@@ -401,17 +404,17 @@ const DB = {
 
   async deleteUser(userId) {
     const currentUser = this.getCurrentUser();
-    if (currentUser.role !== 'ADMIN') {
+    if (!currentUser || currentUser.role !== 'ADMIN') {
       throw new Error('فقط مدیر ارشد مجاز به حذف نگهبانان است.');
     }
 
     if (currentUser.id === userId) {
-      throw new Error('امکان حذف حساب کاربری مدیر جاری وجود ندارد.');
+      throw new Error('شما نمی‌توانید حساب کاربری جاری خود را حذف فرمایید.');
     }
 
     const users = await this.getUsers();
     if (users.length <= 1) {
-      throw new Error('حداقل یک حساب کاربری باید در سامانه باقی بماند.');
+      throw new Error('حداقل یک حساب کاربری مدیر باید در سامانه فعال باقی بماند.');
     }
 
     if (this.isCloudConfigured()) {
@@ -427,7 +430,7 @@ const DB = {
   },
 
   // ==========================================
-  // مدیریت رکوردهای تردد و تفکیک مامورین
+  // مدیریت رکوردهای تردد
   // ==========================================
   getLocalRecords() {
     try {
@@ -460,10 +463,9 @@ const DB = {
     return this.getLocalRecords();
   },
 
-  // ثبت ورود جدید با ثبت مشخصات نگهبان جاری به عنوان entry_guard
   async insertEntry(entry) {
     if (!this.hasPermission('create')) {
-      throw new Error('شما دسترسی لازم جهت «ثبت تردد جدید» را ندارید.');
+      throw new Error('شما دسترسی لازم جهت ثبت تردد جدید را ندارید.');
     }
 
     const currentGuard = this.getCurrentUser();
@@ -506,7 +508,7 @@ const DB = {
     localList.unshift(newRecord);
     this.saveLocalRecords(localList);
 
-    // به‌روزرسانی مشخصات در حافظه خودکار
+    // ذخیره در بانک مراجعین جهت تکمیل خودکار
     await this.saveOrUpdateProfile({
       trafficType: newRecord.traffic_type,
       personName: newRecord.person_name,
@@ -524,10 +526,9 @@ const DB = {
     return newRecord;
   },
 
-  // ثبت خروج با ثبت نگهبان فعال در لحظه خروج (بدون تغییر نگهبان ورود)
   async recordExit(id, exitData) {
     if (!this.hasPermission('update')) {
-      throw new Error('شما دسترسی لازم جهت «ثبت خروج و ویرایش تردد» را ندارید.');
+      throw new Error('شما دسترسی لازم جهت ثبت خروج را ندارید.');
     }
 
     const currentGuard = this.getCurrentUser();
@@ -545,7 +546,7 @@ const DB = {
 
   async updateRecord(id, updatedFields) {
     if (!this.hasPermission('update')) {
-      throw new Error('شما دسترسی لازم جهت «ویرایش رکوردها» را ندارید.');
+      throw new Error('شما دسترسی لازم جهت ویرایش رکوردها را ندارید.');
     }
 
     if (this.isCloudConfigured()) {
@@ -589,7 +590,7 @@ const DB = {
 
   async deleteRecord(id) {
     if (!this.hasPermission('delete')) {
-      throw new Error('شما دسترسی لازم جهت «حذف رکوردها» را ندارید.');
+      throw new Error('شما دسترسی لازم جهت حذف رکوردها را ندارید.');
     }
 
     if (this.isCloudConfigured()) {
@@ -606,7 +607,7 @@ const DB = {
   },
 
   // ==========================================
-  // مدیریت بانک مراجعین دائمی (Auto-fill profiles)
+  // بانک مراجعین و تکمیل خودکار (Profiles)
   // ==========================================
   getLocalProfiles() {
     try {
