@@ -1,7 +1,7 @@
 /**
  * db.js
  * لایه پایگاه داده (Turso Cloud + LocalStorage)
- * مجهز به سیستم خودترمیمی دیتابیس (Auto-Migration) و ایزولاسیون کامل برای جلوگیری از تداخل متغیرها
+ * مجهز به سیستم خودترمیمی جداول (Auto-Migration) و کنترل سطوح دسترسی (RBAC)
  */
 
 (function () {
@@ -148,7 +148,7 @@
       try { await this.executeTurso(createUsersTable); } catch (e) {}
       try { await this.executeTurso(createProfilesTable); } catch (e) {}
 
-      // مهاجرت و اصلاح خودکار ستون‌ها
+      // اصلاح و همگام‌سازی خودکار ستون‌های جداول در صورت ارتقاء
       const columns = [
         { t: 'campus_records', c: 'entry_guard_name' },
         { t: 'campus_records', c: 'entry_guard_shift' },
@@ -219,7 +219,7 @@
             return mapped;
           }
         } catch (e) {
-          console.warn('خواندن کاربران از حافظه محلی:', e);
+          console.warn('استفاده از نسخه محلی کاربران:', e);
         }
       }
       return this.getLocalUsers();
@@ -362,7 +362,7 @@
 
     async deleteUser(userId) {
       const currentUser = this.getCurrentUser();
-      if (!currentUser || currentUser.role !== 'ADMIN') throw new Error('فقط مدیر ارشد مجاز به حذف نگهبانان است.');
+      if (!currentUser || currentUser.role !== 'ADMIN') throw new Error('فقط مدیر ارشد مجاز به حذف کاربران است.');
       if (currentUser.id === userId) throw new Error('امکان حذف حساب کاربری جاری وجود ندارد.');
 
       if (this.isCloudConfigured()) {
@@ -392,7 +392,7 @@
           this.saveLocalRecords(rows);
           return rows;
         } catch (e) {
-          console.warn('خواندن رکوردها از حافظه محلی:', e);
+          console.warn('استفاده از حافظه محلی جهت خواندن ترددها:', e);
         }
       }
       return this.getLocalRecords();
