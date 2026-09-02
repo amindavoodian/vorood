@@ -1,30 +1,96 @@
 /**
-this is db.js
-
- * Hybrid Turso Cloud + LocalStorage Database & Auto-Fill Sync Layer
+ * db.js
+ * لایه جامع پایگاه داده (Turso Cloud + LocalStorage) با سیستم مدیریت کاربران و سطوح دسترسی (RBAC)
  */
-const DB = {
-  STORAGE_KEY: 'campus_guard_db_v6',
-  GUARDS_KEY: 'campus_guard_officers_v6',
-  PROFILES_KEY: 'campus_guard_profiles_v6',
-  ACTIVE_GUARD_KEY: 'campus_guard_active_id_v6',
-  TURSO_KEY: 'campus_guard_turso_cfg_v6',
 
-  defaultGuards: [
-    { id: 1, name: 'علیرضا حسینی', shiftName: 'شیفت صبح', shiftHours: '۰۶:۰۰ الی ۱۴:۰۰' },
-    { id: 2, name: 'محمد کریمی', shiftName: 'شیفت عصر', shiftHours: '۱۴:۰۰ الی ۲۲:۰۰' },
-    { id: 3, name: 'مهدی مرادی', shiftName: 'شیفت شب', shiftHours: '۲۲:۰۰ الی ۰۶:۰۰' }
+const DB = {
+  STORAGE_KEY: 'campus_guard_records_v7',
+  USERS_KEY: 'campus_guard_users_v7',
+  ACTIVE_USER_KEY: 'campus_guard_active_user_v7',
+  PROFILES_KEY: 'campus_guard_profiles_v7',
+  TURSO_KEY: 'campus_guard_turso_cfg_v7',
+
+  // کاربران پیش‌فرض اولیه سامانه
+  defaultUsers: [
+    {
+      id: 'usr_admin',
+      username: 'admin',
+      name: 'مدیر ارشد سامانه',
+      role: 'ADMIN',
+      pin: '1234', // پین‌کد / رمز عبور پیش‌فرض
+      permissions: {
+        read: true,
+        create: true,
+        update: true,
+        delete: true
+      },
+      shiftName: 'مدیریت و نظارت',
+      shiftHours: '۲۴ ساعته'
+    },
+    {
+      id: 'usr_guard_1',
+      username: 'hosseini',
+      name: 'علیرضا حسینی',
+      role: 'GUARD',
+      pin: '1111',
+      permissions: {
+        read: true,
+        create: true,
+        update: true,
+        delete: false
+      },
+      shiftName: 'شیفت صبح',
+      shiftHours: '۰۶:۰۰ الی ۱۴:۰۰'
+    },
+    {
+      id: 'usr_guard_2',
+      username: 'karimi',
+      name: 'محمد کریمی',
+      role: 'GUARD',
+      pin: '2222',
+      permissions: {
+        read: true,
+        create: true,
+        update: true,
+        delete: false
+      },
+      shiftName: 'شیفت عصر',
+      shiftHours: '۱۴:۰۰ الی ۲۲:۰۰'
+    },
+    {
+      id: 'usr_guard_3',
+      username: 'moradi',
+      name: 'مهدی مرادی',
+      role: 'GUARD',
+      pin: '3333',
+      permissions: {
+        read: true,
+        create: true,
+        update: false,
+        delete: false
+      },
+      shiftName: 'شیفت شب',
+      shiftHours: '۲۲:۰۰ الی ۰۶:۰۰'
+    }
   ],
 
+  // --- تنظیمات دیتابیس ابری Turso ---
   getTursoConfig() {
-    try { return JSON.parse(localStorage.getItem(this.TURSO_KEY) || 'null'); } catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem(this.TURSO_KEY) || 'null');
+    } catch {
+      return null;
+    }
   },
+
   saveTursoConfig(cfg) {
     localStorage.setItem(this.TURSO_KEY, JSON.stringify(cfg));
   },
+
   clearTursoConfig() {
     localStorage.removeItem(this.TURSO_KEY);
   },
+
   isCloudConfigured() {
     const cfg = this.getTursoConfig();
     return !!(cfg && cfg.databaseUrl && cfg.authToken);
@@ -33,7 +99,7 @@ const DB = {
   async executeTurso(sql, args = []) {
     const cfg = this.getTursoConfig();
     if (!cfg || !cfg.databaseUrl || !cfg.authToken) {
-      throw new Error('تنظیمات دیتابیس ابری ثبت نشده است.');
+      throw new Error('تنظیمات اتصال به دیتابیس ابری ثبت نشده است.');
     }
 
     let baseUrl = cfg.databaseUrl.trim();
@@ -67,13 +133,13 @@ const DB = {
 
     if (!response.ok) {
       const errBody = await response.text();
-      throw new Error(`خطای سرور دیتابیس (${response.status}): ${errBody}`);
+      throw new Error(`خطای سرور ابری (${response.status}): ${errBody}`);
     }
 
     const data = await response.json();
     const firstResult = data.results?.[0];
     if (firstResult?.type === 'error') {
-      throw new Error(firstResult.error?.message || 'خطای اجرای کوئری SQL');
+      throw new Error(firstResult.error?.message || 'خطای اجرای کوئری در دیتابیس ابری');
     }
     return firstResult?.response?.result;
   },
@@ -81,7 +147,7 @@ const DB = {
   async initCloudTables() {
     if (!this.isCloudConfigured()) return;
 
-    // جدول ترددها
+    // جدول رکوردها با تفکیک مامور ورود و مامور خروج
     const createRecordsTable = `
       CREATE TABLE IF NOT EXISTS campus_records (
         id INTEGER PRIMARY KEY,
@@ -101,24 +167,30 @@ const DB = {
         exit_time TEXT,
         exit_jalali_date TEXT,
         exit_time_display TEXT,
-        guard_name TEXT,
-        guard_shift TEXT,
+        entry_guard_name TEXT,
+        entry_guard_shift TEXT,
+        exit_guard_name TEXT,
+        exit_guard_shift TEXT,
         notes TEXT,
         created_at TEXT
       );
     `;
 
-    // جدول ماموران
-    const createGuardsTable = `
-      CREATE TABLE IF NOT EXISTS campus_guards (
-        id INTEGER PRIMARY KEY,
+    // جدول کاربران و نگهبانان با مجوزها
+    const createUsersTable = `
+      CREATE TABLE IF NOT EXISTS campus_users (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE,
         name TEXT,
+        role TEXT,
+        pin TEXT,
+        permissions TEXT,
         shift_name TEXT,
         shift_hours TEXT
       );
     `;
 
-    // جدول پروفایل‌ها و حافظه خودکار
+    // جدول مراجعین و پلاک‌های پرتکرار برای تکمیل خودکار
     const createProfilesTable = `
       CREATE TABLE IF NOT EXISTS campus_profiles (
         profile_key TEXT PRIMARY KEY,
@@ -138,7 +210,7 @@ const DB = {
     `;
 
     await this.executeTurso(createRecordsTable);
-    await this.executeTurso(createGuardsTable);
+    await this.executeTurso(createUsersTable);
     await this.executeTurso(createProfilesTable);
   },
 
@@ -160,13 +232,391 @@ const DB = {
     });
   },
 
-  // --- مدیریت حافظه محلی مراجعین (Profiles for Auto-fill) ---
+  // ==========================================
+  // مدیریت کاربران و سیستم کنترل دسترسی (RBAC)
+  // ==========================================
+  getLocalUsers() {
+    try {
+      const raw = localStorage.getItem(this.USERS_KEY);
+      if (!raw) {
+        this.saveLocalUsers(this.defaultUsers);
+        return this.defaultUsers;
+      }
+      return JSON.parse(raw);
+    } catch {
+      return this.defaultUsers;
+    }
+  },
+
+  saveLocalUsers(usersList) {
+    localStorage.setItem(this.USERS_KEY, JSON.stringify(usersList));
+  },
+
+  async getUsers() {
+    if (this.isCloudConfigured()) {
+      try {
+        const res = await this.executeTurso('SELECT * FROM campus_users ORDER BY role DESC, name ASC');
+        const rows = this.parseRows(res);
+        if (rows.length > 0) {
+          const mapped = rows.map(r => ({
+            id: r.id,
+            username: r.username,
+            name: r.name,
+            role: r.role,
+            pin: r.pin,
+            permissions: typeof r.permissions === 'string' ? JSON.parse(r.permissions) : (r.permissions || {}),
+            shiftName: r.shift_name,
+            shiftHours: r.shift_hours
+          }));
+          this.saveLocalUsers(mapped);
+          return mapped;
+        }
+      } catch (e) {
+        console.warn('خواندن کاربران از حافظه محلی به دلیل عدم دسترسی به سرور ابری:', e);
+      }
+    }
+    return this.getLocalUsers();
+  },
+
+  getCurrentUser() {
+    try {
+      const raw = localStorage.getItem(this.ACTIVE_USER_KEY);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    // اگر کاربری لاگین نبود، ادمین پیش‌فرض را بازمی‌گردانیم
+    const defaultUser = this.getLocalUsers()[0] || this.defaultUsers[0];
+    this.setCurrentUser(defaultUser);
+    return defaultUser;
+  },
+
+  setCurrentUser(user) {
+    localStorage.setItem(this.ACTIVE_USER_KEY, JSON.stringify(user));
+  },
+
+  logout() {
+    localStorage.removeItem(this.ACTIVE_USER_KEY);
+  },
+
+  async authenticate(usernameOrId, pin) {
+    const users = await this.getUsers();
+    const cleanPin = Jalali.toLatinDigits(pin || '').trim();
+    const user = users.find(u => (u.username === usernameOrId || u.id === usernameOrId) && u.pin === cleanPin);
+    if (!user) {
+      throw new Error('نام کاربری یا رمز عبور (پین‌کد) اشتباه است.');
+    }
+    this.setCurrentUser(user);
+    return user;
+  },
+
+  hasPermission(action) {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    if (action === 'admin') return false;
+
+    const perms = user.permissions || {};
+    return !!perms[action];
+  },
+
+  async saveUser(userData) {
+    const currentUser = this.getCurrentUser();
+    if (currentUser.role !== 'ADMIN') {
+      throw new Error('تنها مدیر ارشد مجاز به ایجاد یا ویرایش کاربران و تغییر سطوح دسترسی است.');
+    }
+
+    const users = await this.getUsers();
+    const isEdit = !!userData.id;
+    const userId = isEdit ? userData.id : 'usr_' + Date.now();
+
+    // اعتبارسنجی یکتایی نام کاربری
+    const existing = users.find(u => u.username === userData.username && u.id !== userId);
+    if (existing) {
+      throw new Error('این نام کاربری قبلاً برای کاربر دیگری ثبت شده است.');
+    }
+
+    const newUserObj = {
+      id: userId,
+      username: userData.username.trim().toLowerCase(),
+      name: userData.name.trim(),
+      role: userData.role || 'GUARD',
+      pin: Jalali.toLatinDigits(userData.pin || '1234').trim(),
+      permissions: {
+        read: !!userData.permissions?.read,
+        create: !!userData.permissions?.create,
+        update: !!userData.permissions?.update,
+        delete: !!userData.permissions?.delete
+      },
+      shiftName: userData.shiftName || 'شیفت عمومی',
+      shiftHours: userData.shiftHours || '۰۸:۰۰ الی ۱۶:۰۰'
+    };
+
+    if (this.isCloudConfigured()) {
+      try {
+        await this.executeTurso(`
+          INSERT INTO campus_users (id, username, name, role, pin, permissions, shift_name, shift_hours)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            username=excluded.username,
+            name=excluded.name,
+            role=excluded.role,
+            pin=excluded.pin,
+            permissions=excluded.permissions,
+            shift_name=excluded.shift_name,
+            shift_hours=excluded.shift_hours;
+        `, [
+          newUserObj.id,
+          newUserObj.username,
+          newUserObj.name,
+          newUserObj.role,
+          newUserObj.pin,
+          JSON.stringify(newUserObj.permissions),
+          newUserObj.shiftName,
+          newUserObj.shiftHours
+        ]);
+      } catch (e) {
+        console.error('خطای ذخیره کاربر در سرور ابری:', e);
+      }
+    }
+
+    let localList = this.getLocalUsers();
+    const idx = localList.findIndex(u => u.id === userId);
+    if (idx !== -1) {
+      localList[idx] = newUserObj;
+    } else {
+      localList.push(newUserObj);
+    }
+    this.saveLocalUsers(localList);
+
+    // در صورتی که کاربر جاری خودش را ویرایش کرده بود، نشست او به‌روزرسانی شود
+    if (currentUser.id === userId) {
+      this.setCurrentUser(newUserObj);
+    }
+
+    return newUserObj;
+  },
+
+  async deleteUser(userId) {
+    const currentUser = this.getCurrentUser();
+    if (currentUser.role !== 'ADMIN') {
+      throw new Error('فقط مدیر ارشد مجاز به حذف نگهبانان است.');
+    }
+
+    if (currentUser.id === userId) {
+      throw new Error('امکان حذف حساب کاربری مدیر جاری وجود ندارد.');
+    }
+
+    const users = await this.getUsers();
+    if (users.length <= 1) {
+      throw new Error('حداقل یک حساب کاربری باید در سامانه باقی بماند.');
+    }
+
+    if (this.isCloudConfigured()) {
+      try {
+        await this.executeTurso('DELETE FROM campus_users WHERE id = ?', [userId]);
+      } catch (e) {
+        console.error('خطای حذف کاربر از سرور ابری:', e);
+      }
+    }
+
+    let localList = this.getLocalUsers().filter(u => u.id !== userId);
+    this.saveLocalUsers(localList);
+  },
+
+  // ==========================================
+  // مدیریت رکوردهای تردد و تفکیک مامورین
+  // ==========================================
+  getLocalRecords() {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY) || '[]';
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  },
+
+  saveLocalRecords(list) {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
+  },
+
+  async getRecords() {
+    if (!this.hasPermission('read')) {
+      return [];
+    }
+
+    if (this.isCloudConfigured()) {
+      try {
+        const res = await this.executeTurso('SELECT * FROM campus_records ORDER BY id DESC');
+        const rows = this.parseRows(res);
+        this.saveLocalRecords(rows);
+        return rows;
+      } catch (e) {
+        console.warn('خواندن رکوردها از کش محلی:', e);
+      }
+    }
+    return this.getLocalRecords();
+  },
+
+  // ثبت ورود جدید با ثبت مشخصات نگهبان جاری به عنوان entry_guard
+  async insertEntry(entry) {
+    if (!this.hasPermission('create')) {
+      throw new Error('شما دسترسی لازم جهت «ثبت تردد جدید» را ندارید.');
+    }
+
+    const currentGuard = this.getCurrentUser();
+    const newRecord = {
+      ...entry,
+      entry_guard_name: currentGuard.name,
+      entry_guard_shift: `${currentGuard.shiftName} (${currentGuard.shiftHours})`,
+      exit_guard_name: null,
+      exit_guard_shift: null,
+      id: Date.now(),
+      created_at: new Date().toISOString()
+    };
+
+    if (this.isCloudConfigured()) {
+      try {
+        await this.executeTurso(`
+          INSERT INTO campus_records (
+            id, traffic_type, person_category, person_name, plate_part1, plate_letter,
+            plate_part2, plate_city, plate_full, vehicle_category, vehicle_model, status,
+            entry_jalali_date, entry_time_display, exit_time, exit_jalali_date, exit_time_display,
+            entry_guard_name, entry_guard_shift, exit_guard_name, exit_guard_shift, notes, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          newRecord.id, newRecord.traffic_type, newRecord.person_category, newRecord.person_name,
+          newRecord.plate_part1, newRecord.plate_letter, newRecord.plate_part2, newRecord.plate_city,
+          newRecord.plate_full, newRecord.vehicle_category, newRecord.vehicle_model, newRecord.status,
+          newRecord.entry_jalali_date, newRecord.entry_time_display, newRecord.exit_time,
+          newRecord.exit_jalali_date, newRecord.exit_time_display,
+          newRecord.entry_guard_name, newRecord.entry_guard_shift,
+          newRecord.exit_guard_name, newRecord.exit_guard_shift,
+          newRecord.notes, newRecord.created_at
+        ]);
+      } catch (e) {
+        console.error('خطای ثبت تردد در ابری:', e);
+        throw new Error('ثبت در دیتابیس ابری با خطا مواجه شد: ' + e.message);
+      }
+    }
+
+    const localList = this.getLocalRecords();
+    localList.unshift(newRecord);
+    this.saveLocalRecords(localList);
+
+    // به‌روزرسانی مشخصات در حافظه خودکار
+    await this.saveOrUpdateProfile({
+      trafficType: newRecord.traffic_type,
+      personName: newRecord.person_name,
+      personCategory: newRecord.person_category,
+      platePart1: newRecord.plate_part1,
+      plateLetter: newRecord.plate_letter,
+      platePart2: newRecord.plate_part2,
+      plateCity: newRecord.plate_city,
+      plateFull: newRecord.plate_full,
+      vehicleCategory: newRecord.vehicle_category,
+      vehicleModel: newRecord.vehicle_model,
+      defaultNotes: newRecord.notes
+    });
+
+    return newRecord;
+  },
+
+  // ثبت خروج با ثبت نگهبان فعال در لحظه خروج (بدون تغییر نگهبان ورود)
+  async recordExit(id, exitData) {
+    if (!this.hasPermission('update')) {
+      throw new Error('شما دسترسی لازم جهت «ثبت خروج و ویرایش تردد» را ندارید.');
+    }
+
+    const currentGuard = this.getCurrentUser();
+    const updatePayload = {
+      status: 'EXITED',
+      exit_jalali_date: exitData.exit_jalali_date,
+      exit_time_display: exitData.exit_time_display,
+      exit_time: new Date().toISOString(),
+      exit_guard_name: currentGuard.name,
+      exit_guard_shift: `${currentGuard.shiftName} (${currentGuard.shiftHours})`
+    };
+
+    return await this.updateRecord(id, updatePayload);
+  },
+
+  async updateRecord(id, updatedFields) {
+    if (!this.hasPermission('update')) {
+      throw new Error('شما دسترسی لازم جهت «ویرایش رکوردها» را ندارید.');
+    }
+
+    if (this.isCloudConfigured()) {
+      try {
+        const keys = Object.keys(updatedFields);
+        const setClause = keys.map(k => `${k} = ?`).join(', ');
+        const values = keys.map(k => updatedFields[k]);
+        values.push(id);
+        await this.executeTurso(`UPDATE campus_records SET ${setClause} WHERE id = ?`, values);
+      } catch (e) {
+        console.error('خطای ویرایش در ابری:', e);
+        throw new Error('ویرایش در دیتابیس ابری ناموفق بود: ' + e.message);
+      }
+    }
+
+    const localList = this.getLocalRecords();
+    const idx = localList.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      localList[idx] = { ...localList[idx], ...updatedFields };
+      this.saveLocalRecords(localList);
+
+      const r = localList[idx];
+      await this.saveOrUpdateProfile({
+        trafficType: r.traffic_type,
+        personName: r.person_name,
+        personCategory: r.person_category,
+        platePart1: r.plate_part1,
+        plateLetter: r.plate_letter,
+        platePart2: r.plate_part2,
+        plateCity: r.plate_city,
+        plateFull: r.plate_full,
+        vehicleCategory: r.vehicle_category,
+        vehicleModel: r.vehicle_model,
+        defaultNotes: r.notes
+      });
+
+      return localList[idx];
+    }
+    return null;
+  },
+
+  async deleteRecord(id) {
+    if (!this.hasPermission('delete')) {
+      throw new Error('شما دسترسی لازم جهت «حذف رکوردها» را ندارید.');
+    }
+
+    if (this.isCloudConfigured()) {
+      try {
+        await this.executeTurso('DELETE FROM campus_records WHERE id = ?', [id]);
+      } catch (e) {
+        console.error('خطای حذف در ابری:', e);
+        throw new Error('حذف از دیتابیس ابری ناموفق بود: ' + e.message);
+      }
+    }
+
+    let localList = this.getLocalRecords().filter(r => r.id !== id);
+    this.saveLocalRecords(localList);
+  },
+
+  // ==========================================
+  // مدیریت بانک مراجعین دائمی (Auto-fill profiles)
+  // ==========================================
   getLocalProfiles() {
     try {
       const raw = localStorage.getItem(this.PROFILES_KEY) || '{}';
       return JSON.parse(raw);
-    } catch { return {}; }
+    } catch {
+      return {};
+    }
   },
+
   saveLocalProfiles(profilesMap) {
     localStorage.setItem(this.PROFILES_KEY, JSON.stringify(profilesMap));
   },
@@ -210,7 +660,7 @@ const DB = {
           this.saveLocalProfiles(localMap);
         }
       } catch (err) {
-        console.warn('همگام‌سازی پروفایل‌های ابری با خطا مواجه شد، استفاده از کش محلی:', err);
+        console.warn('عدم امکان همگام‌سازی پروفایل‌ها با سرور ابری:', err);
       }
     }
   },
@@ -231,12 +681,10 @@ const DB = {
       updatedAt: new Date().toISOString()
     };
 
-    // ذخیره در LocalStorage برای سرعت لحظه‌ای Auto-fill
     const localMap = this.getLocalProfiles();
     localMap[key] = fullProfile;
     this.saveLocalProfiles(localMap);
 
-    // ذخیره همزمان در دیتابیس ابری
     if (this.isCloudConfigured()) {
       try {
         await this.executeTurso(`
@@ -260,7 +708,7 @@ const DB = {
           fullProfile.updatedAt
         ]);
       } catch (e) {
-        console.error('خطا در همگام‌سازی پروفایل مراجع با سرور ابری:', e);
+        console.error('خطای ذخیره پروفایل در ابری:', e);
       }
     }
   },
@@ -275,219 +723,6 @@ const DB = {
     const key = this.generateProfileKey('PEDESTRIAN', null, null, null, null, name);
     const profiles = this.getLocalProfiles();
     return profiles[key] || null;
-  },
-
-  // --- مدیریت رکوردها و ماموران ---
-  getLocalRecords() {
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY) || '[]';
-      return JSON.parse(raw);
-    } catch { return []; }
-  },
-  saveLocalRecords(list) {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
-  },
-
-  getLocalGuards() {
-    try {
-      const raw = localStorage.getItem(this.GUARDS_KEY);
-      if (!raw) {
-        this.saveLocalGuards(this.defaultGuards);
-        return this.defaultGuards;
-      }
-      return JSON.parse(raw);
-    } catch { return this.defaultGuards; }
-  },
-  saveLocalGuards(list) {
-    localStorage.setItem(this.GUARDS_KEY, JSON.stringify(list));
-  },
-
-  getActiveGuardId() {
-    return Number(localStorage.getItem(this.ACTIVE_GUARD_KEY)) || (this.getLocalGuards()[0]?.id || 1);
-  },
-  setActiveGuardId(id) {
-    localStorage.setItem(this.ACTIVE_GUARD_KEY, String(id));
-  },
-  async getActiveGuard() {
-    const guards = await this.getGuards();
-    const id = this.getActiveGuardId();
-    return guards.find(g => g.id === id) || guards[0] || { name: 'نامشخص', shiftName: 'عمومی', shiftHours: '--' };
-  },
-
-  async getGuards() {
-    if (this.isCloudConfigured()) {
-      try {
-        const res = await this.executeTurso('SELECT * FROM campus_guards ORDER BY id ASC');
-        const rows = this.parseRows(res);
-        if (rows.length > 0) {
-          const mapped = rows.map(r => ({
-            id: r.id,
-            name: r.name,
-            shiftName: r.shift_name,
-            shiftHours: r.shift_hours
-          }));
-          this.saveLocalGuards(mapped);
-          return mapped;
-        }
-      } catch (e) {
-        console.warn('خواندن لیست ماموران از کش محلی به دلیل عدم دسترسی به سرور:', e);
-      }
-    }
-    return this.getLocalGuards();
-  },
-
-  async addGuard(name, shiftName, shiftHours) {
-    const newGuard = { id: Date.now(), name, shiftName, shiftHours: shiftHours || 'تمام‌وقت' };
-    if (this.isCloudConfigured()) {
-      try {
-        await this.executeTurso(
-          'INSERT INTO campus_guards (id, name, shift_name, shift_hours) VALUES (?, ?, ?, ?)',
-          [newGuard.id, newGuard.name, newGuard.shiftName, newGuard.shiftHours]
-        );
-      } catch (e) {
-        console.error('خطا در ذخیره مامور در ابری:', e);
-      }
-    }
-    const list = this.getLocalGuards();
-    list.push(newGuard);
-    this.saveLocalGuards(list);
-    return newGuard;
-  },
-
-  async deleteGuard(id) {
-    if (this.isCloudConfigured()) {
-      try {
-        await this.executeTurso('DELETE FROM campus_guards WHERE id = ?', [id]);
-      } catch (e) {
-        console.error('خطا در حذف مامور از ابری:', e);
-      }
-    }
-    let list = this.getLocalGuards();
-    list = list.filter(g => g.id !== id);
-    this.saveLocalGuards(list);
-  },
-
-  async getRecords() {
-    if (this.isCloudConfigured()) {
-      try {
-        const res = await this.executeTurso('SELECT * FROM campus_records ORDER BY id DESC');
-        const rows = this.parseRows(res);
-        this.saveLocalRecords(rows);
-        return rows;
-      } catch (e) {
-        console.warn('خواندن ترددها از کش محلی:', e);
-      }
-    }
-    return this.getLocalRecords();
-  },
-
-  async insertEntry(entry) {
-    const activeGuard = await this.getActiveGuard();
-    const newRecord = {
-      ...entry,
-      guard_name: activeGuard.name,
-      guard_shift: `${activeGuard.shiftName} (${activeGuard.shiftHours})`,
-      id: Date.now(),
-      created_at: new Date().toISOString()
-    };
-
-    if (this.isCloudConfigured()) {
-      try {
-        await this.executeTurso(`
-          INSERT INTO campus_records (
-            id, traffic_type, person_category, person_name, plate_part1, plate_letter,
-            plate_part2, plate_city, plate_full, vehicle_category, vehicle_model, status,
-            entry_jalali_date, entry_time_display, exit_time, exit_jalali_date, exit_time_display,
-            guard_name, guard_shift, notes, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          newRecord.id, newRecord.traffic_type, newRecord.person_category, newRecord.person_name,
-          newRecord.plate_part1, newRecord.plate_letter, newRecord.plate_part2, newRecord.plate_city,
-          newRecord.plate_full, newRecord.vehicle_category, newRecord.vehicle_model, newRecord.status,
-          newRecord.entry_jalali_date, newRecord.entry_time_display, newRecord.exit_time,
-          newRecord.exit_jalali_date, newRecord.exit_time_display, newRecord.guard_name,
-          newRecord.guard_shift, newRecord.notes, newRecord.created_at
-        ]);
-      } catch (e) {
-        console.error('خطای ثبت در سرور ابری:', e);
-        throw new Error('ثبت در دیتابیس ابری با خطا مواجه شد: ' + e.message);
-      }
-    }
-
-    const localList = this.getLocalRecords();
-    localList.unshift(newRecord);
-    this.saveLocalRecords(localList);
-
-    // ذخیره یا بروزرسانی پروفایل در حافظه هوشمند
-    await this.saveOrUpdateProfile({
-      trafficType: newRecord.traffic_type,
-      personName: newRecord.person_name,
-      personCategory: newRecord.person_category,
-      platePart1: newRecord.plate_part1,
-      plateLetter: newRecord.plate_letter,
-      platePart2: newRecord.plate_part2,
-      plateCity: newRecord.plate_city,
-      plateFull: newRecord.plate_full,
-      vehicleCategory: newRecord.vehicle_category,
-      vehicleModel: newRecord.vehicle_model,
-      defaultNotes: newRecord.notes
-    });
-
-    return newRecord;
-  },
-
-  async updateRecord(id, updatedFields) {
-    if (this.isCloudConfigured()) {
-      try {
-        const keys = Object.keys(updatedFields);
-        const setClause = keys.map(k => `${k} = ?`).join(', ');
-        const values = keys.map(k => updatedFields[k]);
-        values.push(id);
-        await this.executeTurso(`UPDATE campus_records SET ${setClause} WHERE id = ?`, values);
-      } catch (e) {
-        console.error('خطای ویرایش در سرور ابری:', e);
-        throw new Error('ویرایش در دیتابیس ابری ناموفق بود: ' + e.message);
-      }
-    }
-
-    const localList = this.getLocalRecords();
-    const idx = localList.findIndex(r => r.id === id);
-    if (idx !== -1) {
-      localList[idx] = { ...localList[idx], ...updatedFields };
-      this.saveLocalRecords(localList);
-
-      const r = localList[idx];
-      await this.saveOrUpdateProfile({
-        trafficType: r.traffic_type,
-        personName: r.person_name,
-        personCategory: r.person_category,
-        platePart1: r.plate_part1,
-        plateLetter: r.plate_letter,
-        platePart2: r.plate_part2,
-        plateCity: r.plate_city,
-        plateFull: r.plate_full,
-        vehicleCategory: r.vehicle_category,
-        vehicleModel: r.vehicle_model,
-        defaultNotes: r.notes
-      });
-
-      return localList[idx];
-    }
-    return null;
-  },
-
-  async deleteRecord(id) {
-    if (this.isCloudConfigured()) {
-      try {
-        await this.executeTurso('DELETE FROM campus_records WHERE id = ?', [id]);
-      } catch (e) {
-        console.error('خطای حذف در سرور ابری:', e);
-        throw new Error('حذف از دیتابیس ابری ناموفق بود: ' + e.message);
-      }
-    }
-    let localList = this.getLocalRecords();
-    localList = localList.filter(r => r.id !== id);
-    this.saveLocalRecords(localList);
   }
 };
 
