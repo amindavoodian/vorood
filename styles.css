@@ -56,7 +56,7 @@ body {
   }
 }
 
-/* هدر */
+/* هدر اصلی */
 .app-header {
   background-color: var(--bg-card);
   border-bottom: 1px solid var(--border);
@@ -118,7 +118,7 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   flex-shrink: 0;
 }
 
@@ -138,34 +138,67 @@ body {
 .db-status-badge.is-online { border-color: rgba(5, 150, 105, 0.3); color: var(--emerald); background: var(--emerald-subtle); }
 .db-status-badge.is-local { border-color: rgba(217, 119, 6, 0.3); color: var(--amber); background: var(--amber-subtle); }
 
-.active-guard-widget {
+/* نشانگر و ویجت کاربر فعال */
+.active-user-badge-container {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 0.25rem 0.45rem;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
-.active-guard-widget label {
-  font-size: 0.7rem;
+.active-user-badge-container:hover {
+  background: #e2e8f0;
+  border-color: var(--border-dark);
+}
+.user-meta-header {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.header-user-name {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.header-role-badge {
+  font-size: 0.6rem;
   font-weight: 700;
+  border-radius: 3px;
+  padding: 1px 4px;
+  align-self: flex-start;
+  margin-top: 1px;
+}
+.badge-role-admin {
+  background: var(--purple-subtle);
+  color: var(--purple);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+.badge-role-guard {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.btn-switch-user {
+  background: transparent;
+  border: none;
   color: var(--text-muted);
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  justify-content: center;
+  padding: 2px;
 }
-.guard-select {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0.2rem 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 700;
+.btn-switch-user:hover {
   color: var(--primary);
-  outline: none;
-  cursor: pointer;
-  max-width: 130px;
 }
 
 .status-dot {
@@ -175,6 +208,21 @@ body {
   border-radius: 50%;
   display: inline-block;
   box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+}
+
+/* بنر هشدار عدم دسترسی */
+.permission-alert-banner {
+  background-color: var(--red-subtle);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: var(--red);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* دکمه‌ها */
@@ -469,7 +517,7 @@ body {
 .time-range-input { width: 68px !important; text-align: center; padding: 0.4rem 0.2rem !important; }
 .range-separator { font-size: 0.72rem; color: var(--text-muted); }
 
-/* کامپوننت پلاک استاندارد ملی */
+/* پلاک استاندارد ملی */
 .plate-wrapper {
   display: flex;
   justify-content: center;
@@ -610,7 +658,7 @@ body {
 .iran-plate-badge .plate-city-box { padding: 0 3px; }
 .iran-plate-badge .plate-iran-tag { font-size: 5px; }
 
-/* بج عابر پیاده و مشخصات */
+/* بج‌های نوع مراجع و وضعیت */
 .badge-pedestrian {
   display: inline-flex;
   align-items: center;
@@ -663,7 +711,38 @@ body {
 .badge-active { background: var(--amber-subtle); color: var(--amber); border: 1px solid rgba(217, 119, 6, 0.25); }
 .badge-exited { background: var(--emerald-subtle); color: var(--emerald); border: 1px solid rgba(5, 150, 105, 0.25); }
 
-/* بخش جدول / کارت واکنش‌گرا */
+/* بج‌های مامورین ورود و خروج */
+.officer-badge-entry {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.officer-badge-entry .officer-name {
+  font-weight: 700;
+  color: var(--primary);
+}
+.officer-badge-entry .officer-shift {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.officer-badge-exit {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.officer-badge-exit .officer-name {
+  font-weight: 700;
+  color: var(--emerald);
+}
+.officer-badge-exit .officer-shift {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+/* جدول داده‌ها */
 .table-container {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
@@ -735,7 +814,6 @@ body {
     border-bottom: none;
   }
 
-  /* ردیف سربرگ کارت در موبایل */
   .mobile-card-header {
     display: flex;
     justify-content: space-between;
@@ -777,13 +855,23 @@ body {
     font-weight: 700;
   }
 
+  .mobile-officers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    padding: 0.4rem 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+    margin: 0.4rem 0;
+    font-size: 0.7rem;
+  }
+
   .mobile-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--border);
-    padding-top: 0.6rem;
-    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    margin-top: 0.4rem;
   }
 }
 
@@ -873,7 +961,7 @@ body {
   gap: 0.4rem;
 }
 
-/* مودال‌ها (Bottom-Sheet در موبایل) */
+/* مودال‌ها */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -988,11 +1076,23 @@ body {
 
 .input-with-action { display: flex; gap: 0.35rem; }
 .input-with-action input { flex: 1; }
-.exit-summary-box { background: var(--bg-subtle); padding: 0.65rem; border-radius: var(--radius-md); font-size: 0.78rem; }
-.exit-summary-plate { margin-top: 0.35rem; }
-.exit-summary-time { margin-top: 0.35rem; color: var(--text-muted); font-size: 0.72rem; }
 
-/* تنظیمات */
+.exit-summary-box {
+  background: var(--bg-subtle);
+  padding: 0.65rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.exit-summary-plate { font-weight: 700; }
+.exit-summary-time { color: var(--text-muted); font-size: 0.72rem; }
+.exit-summary-officer { font-size: 0.72rem; color: var(--primary); }
+.exit-summary-active-guard { font-size: 0.75rem; color: var(--emerald); }
+
+/* بخش مدیریت کاربران و ماتریس دسترسی‌ها در تنظیمات */
 .settings-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
 .settings-tab-btn {
   flex: 1;
@@ -1008,7 +1108,91 @@ body {
   white-space: nowrap;
 }
 .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-card); }
-.guard-item-row, .profile-item-row {
+
+.user-management-box {
+  background: var(--bg-subtle);
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.permission-matrix-section {
+  background: #ffffff;
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem;
+  margin: 0.5rem 0;
+}
+
+.permission-checkboxes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+@media (max-width: 500px) {
+  .permission-checkboxes-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+.user-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  margin-bottom: 0.45rem;
+  font-size: 0.78rem;
+  gap: 0.5rem;
+}
+
+.user-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.user-perms-badges {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.perm-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.perm-tag-on { background: var(--emerald-subtle); color: var(--emerald); border: 1px solid rgba(5, 150, 105, 0.2); }
+.perm-tag-off { background: #f1f5f9; color: var(--text-muted); text-decoration: line-through; }
+
+.section-micro-title { font-size:0.75rem; font-weight:700; margin-bottom:0.5rem; }
+.scrollable-settings-list { max-height: 220px; overflow-y: auto; margin-top: 0.5rem; }
+.tab-description { font-size:0.75rem; color:var(--text-muted); line-height:1.5; }
+.profiles-info-text { font-size:0.78rem; font-weight:700; color:var(--primary); }
+.profile-item-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1019,11 +1203,6 @@ body {
   margin-bottom: 0.4rem;
   font-size: 0.78rem;
 }
-.add-guard-box { background:var(--bg-subtle); padding:0.75rem; border-radius:var(--radius-md); border:1px solid var(--border); }
-.section-micro-title { font-size:0.75rem; font-weight:700; margin-bottom:0.5rem; }
-.scrollable-settings-list { max-height: 200px; overflow-y: auto; margin-top: 0.5rem; }
-.tab-description { font-size:0.75rem; color:var(--text-muted); line-height:1.5; }
-.profiles-info-text { font-size:0.78rem; font-weight:700; color:var(--primary); }
 
 /* توست و پیام‌ها */
 .empty-state { padding: 2.5rem 1rem; text-align: center; color: var(--text-muted); }
