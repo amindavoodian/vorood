@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-  <!-- index.html-->
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -38,14 +37,16 @@
           <span id="db-status-text">دیتابیس محلی</span>
         </div>
 
-        <!-- انتخاب مامور شیفت -->
-        <div class="active-guard-widget">
+        <!-- نشانگر و ویجت کاربر / مامور جاری -->
+        <div class="active-user-badge-container" id="btn-open-user-profile" title="برای تغییر کاربر یا ورود کلیک کنید">
           <span class="status-dot"></span>
-          <label for="select-active-guard">
-            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span class="hide-on-mobile">مامور کشیک:</span>
-          </label>
-          <select id="select-active-guard" class="guard-select"></select>
+          <div class="user-meta-header">
+            <span id="header-user-name" class="header-user-name">در حال بارگذاری...</span>
+            <span id="header-user-role" class="header-role-badge badge-role-admin">مدیر</span>
+          </div>
+          <button class="btn-switch-user" type="button" title="تغییر کاربر / ورود">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          </button>
         </div>
 
         <!-- دکمه دریافت نسخه پشتیبان -->
@@ -54,8 +55,8 @@
           <span class="hide-on-mobile">پشتیبان</span>
         </button>
 
-        <!-- دکمه تنظیمات -->
-        <button id="btn-open-settings" class="btn btn-secondary icon-btn-mobile" title="تنظیمات ماموران حراست و دیتابیس">
+        <!-- دکمه تنظیمات (ویژه مدیر ارشد) -->
+        <button id="btn-open-settings" class="btn btn-secondary icon-btn-mobile" title="تنظیمات سیستم، کاربران و دیتابیس">
           <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span class="hide-on-mobile">تنظیمات</span>
         </button>
@@ -71,8 +72,14 @@
 
   <!-- محتوای اصلی -->
   <main class="main-content">
-    <!-- کارت‌های آمار سریع (۲ در ۲ در موبایل) -->
-    <section class="stats-grid">
+    <!-- بنر هشدار عدم دسترسی مشاهده -->
+    <div id="no-read-permission-banner" class="permission-alert-banner hidden">
+      <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>کاربر گرامی، شما مجوز «مشاهده و خواندن رکوردها» را ندارید. جهت دسترسی با مدیر ارشد هماهنگ نمایید.</span>
+    </div>
+
+    <!-- کارت‌های آمار سریع -->
+    <section class="stats-grid" id="stats-container">
       <div class="stat-card stat-card-amber">
         <div class="stat-info">
           <span class="stat-label">حاضرین در پردیس</span>
@@ -187,7 +194,7 @@
         <div class="filter-item">
           <label class="filter-label">جستجوی متنی:</label>
           <div class="search-box">
-            <input type="text" id="input-search" placeholder="نام، مقصد یا مشخصات..." />
+            <input type="text" id="input-search" placeholder="نام، مقصد، مامور یا مشخصات..." />
           </div>
         </div>
 
@@ -270,9 +277,9 @@
         </div>
 
         <div class="filter-item">
-          <label class="filter-label">مامور ثبت‌کننده:</label>
+          <label class="filter-label">فیلتر مامور حراست:</label>
           <select id="select-filter-guard" class="select-control">
-            <option value="ALL">همه ماموران</option>
+            <option value="ALL">همه ماموران (ورود یا خروج)</option>
           </select>
         </div>
 
@@ -280,7 +287,7 @@
           <label class="filter-label">وضعیت حضور:</label>
           <select id="select-status" class="select-control">
             <option value="ALL">همه وضعیت‌ها</option>
-            <option value="ACTIVE">حاضر در دانشگاه</option>
+            <option value="ACTIVE">حاضر در پردیس</option>
             <option value="EXITED">خارج‌شده‌ها</option>
           </select>
         </div>
@@ -294,7 +301,7 @@
       </div>
     </section>
 
-    <!-- جدول داده‌ها (در موبایل به ساختار کارتی تبدیل می‌شود) -->
+    <!-- جدول داده‌ها -->
     <section class="table-container">
       <div id="table-loading" class="loading-overlay hidden">در حال دریافت اطلاعات...</div>
       <table class="data-table">
@@ -304,11 +311,12 @@
             <th>نوع مراجع</th>
             <th>پلاک / تردد</th>
             <th>نام و مشخصات</th>
-            <th>دسته و مدل خودرو</th>
-            <th>ورود</th>
-            <th>خروج</th>
+            <th>دسته و خودرو</th>
+            <th>زمان ورود</th>
+            <th>زمان خروج</th>
             <th>علت مراجعه و مقصد</th>
-            <th>مامور ثبت‌کننده</th>
+            <th>مامور ثبت ورود</th>
+            <th>مامور ثبت خروج</th>
             <th>وضعیت</th>
             <th class="text-center">عملیات</th>
           </tr>
@@ -329,6 +337,37 @@
     <svg class="svg-icon fab-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     <span>ثبت تردد جدید</span>
   </button>
+
+  <!-- مودال ورود / تغییر حساب کاربری نگهبان -->
+  <div id="modal-login" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <span class="modal-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          تغییر کاربر / ورود به سیستم
+        </span>
+        <button class="modal-close" data-close="modal-login">&times;</button>
+      </div>
+      <form id="form-login-user" class="modal-form">
+        <div id="login-error-msg" class="form-error hidden"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-select-user">انتخاب نگهبان / کاربر:</label>
+          <select id="login-select-user" class="select-control" required></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-input-pin">رمز عبور / پین‌کد کاربری:</label>
+          <input type="password" id="login-input-pin" inputmode="numeric" class="form-control text-center" placeholder="کد ورود ۴ رقمی..." maxlength="10" required />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-login">انصراف</button>
+          <button type="submit" class="btn btn-primary">تایید و ورود</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- مودال ثبت ورود جدید -->
   <div id="modal-entry" class="modal-backdrop hidden">
@@ -518,6 +557,8 @@
           <div>نام مراجع: <strong id="exit-driver-name">--</strong></div>
           <div class="exit-summary-plate">مشخصه تردد: <span id="exit-plate-badge">--</span></div>
           <div class="exit-summary-time">زمان ورود: <span id="exit-entry-time-info">--</span></div>
+          <div class="exit-summary-officer">ثبت‌کننده ورود: <span id="exit-entry-guard-info">--</span></div>
+          <div class="exit-summary-active-guard">مامور ثبت خروج: <strong id="exit-active-guard-info">--</strong></div>
         </div>
 
         <div class="form-row-2">
@@ -539,7 +580,7 @@
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close="modal-exit">انصراف</button>
-          <button type="submit" class="btn btn-emerald">تایید و ثبت خروج</button>
+          <button type="submit" class="btn btn-emerald">تایید و ثبت نهایی خروج</button>
         </div>
       </form>
     </div>
@@ -699,45 +740,103 @@
     </div>
   </div>
 
-  <!-- مودال تنظیمات -->
+  <!-- مودال تنظیمات و مدیریت کاربران (ویژه مدیر ارشد) -->
   <div id="modal-settings" class="modal-backdrop hidden">
-    <div class="modal-card" style="max-width: 580px;">
+    <div class="modal-card" style="max-width: 620px;">
       <div class="modal-header">
         <span class="modal-title">
           <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          تنظیمات سامانه
+          تنظیمات سامانه و کنترل دسترسی
         </span>
         <button class="modal-close" data-close="modal-settings">&times;</button>
       </div>
 
       <div class="settings-tabs">
-        <button type="button" class="settings-tab-btn active" data-tab="tab-guards">ماموران</button>
+        <button type="button" class="settings-tab-btn active" data-tab="tab-users">مدیریت کاربران و نگهبانان</button>
         <button type="button" class="settings-tab-btn" data-tab="tab-profiles">مراجعین دائمی</button>
         <button type="button" class="settings-tab-btn" data-tab="tab-cloud-db">دیتابیس ابری</button>
       </div>
 
-      <!-- تب ماموران -->
-      <div id="tab-guards" class="modal-form">
-        <div class="add-guard-box">
-          <div class="section-micro-title">افزودن مامور جدید:</div>
-          <div class="form-row-2" style="margin-bottom:0.4rem;">
-            <input type="text" id="new-guard-name" class="form-control" placeholder="نام مامور..." />
-            <input type="text" id="new-guard-shift" class="form-control" placeholder="عنوان شیفت (مثال: شیفت صبح)" />
+      <!-- تب مدیریت کاربران و سطوح دسترسی (RBAC) -->
+      <div id="tab-users" class="modal-form">
+        <div class="user-management-box">
+          <div class="section-micro-title" id="user-form-title">افزودن / ویرایش نگهبان جدید:</div>
+          <input type="hidden" id="user-form-id" />
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="user-form-name">نام و نام خانوادگی:</label>
+              <input type="text" id="user-form-name" class="form-control" placeholder="مثال: رضا مرادی" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="user-form-username">نام کاربری (انگلیسی):</label>
+              <input type="text" id="user-form-username" class="form-control" dir="ltr" placeholder="moradi" required />
+            </div>
           </div>
-          <div class="form-row-2" style="align-items:center;">
-            <input type="text" id="new-guard-hours" class="form-control" placeholder="ساعات کار (مثال: ۰۶:۰۰ الی ۱۴:۰۰)" />
-            <button type="button" id="btn-add-guard" class="btn btn-primary" style="height:38px; justify-content:center;">افزودن مامور</button>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="user-form-pin">رمز عبور / پین‌کد:</label>
+              <input type="password" id="user-form-pin" inputmode="numeric" class="form-control text-center" placeholder="مثال: 1234" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="user-form-role">نقش کاربری:</label>
+              <select id="user-form-role" class="select-control">
+                <option value="GUARD">نگهبان / مامور حراست</option>
+                <option value="ADMIN">مدیر ارشد (دسترسی کامل)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="user-form-shift">عنوان شیفت:</label>
+              <input type="text" id="user-form-shift" class="form-control" placeholder="شیفت صبح / عصر / شب" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="user-form-hours">ساعات کاری شیفت:</label>
+              <input type="text" id="user-form-hours" class="form-control" placeholder="۰۶:۰۰ الی ۱۴:۰۰" />
+            </div>
+          </div>
+
+          <!-- ماتریس مجوزها و چک‌باکس‌ها -->
+          <div class="permission-matrix-section" id="permission-matrix-group">
+            <label class="form-label" style="font-weight:800; color:var(--primary);">سطوح دسترسی و مجوزهای مجاز:</label>
+            <div class="permission-checkboxes-grid">
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-read" checked />
+                <span>مشاهده و خواندن ترددها (Read)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-create" checked />
+                <span>ثبت ورود جدید (Create)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-update" checked />
+                <span>ثبت خروج و ویرایش (Update)</span>
+              </label>
+              <label class="checkbox-label">
+                <input type="checkbox" id="perm-delete" />
+                <span>حذف رکورد تردد (Delete)</span>
+              </label>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.4rem; margin-top:0.4rem;">
+            <button type="button" id="btn-cancel-edit-user" class="btn btn-secondary-sm hidden">انصراف از ویرایش</button>
+            <button type="button" id="btn-save-user" class="btn btn-primary" style="min-height:36px;">ذخیره مشخصات کاربر</button>
           </div>
         </div>
 
-        <div id="guards-list-container" class="scrollable-settings-list"></div>
+        <div class="section-micro-title" style="margin-top:0.8rem;">لیست کاربران و نگهبانان تعریف‌شده:</div>
+        <div id="users-list-container" class="scrollable-settings-list"></div>
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close="modal-settings">بستن</button>
         </div>
       </div>
 
-      <!-- تب بانک مشخصات مراجعین دائمی -->
+      <!-- تب بانک مراجعین دائمی -->
       <div id="tab-profiles" class="modal-form hidden">
         <p class="tab-description">
           این بانک شامل مشخصات ذخیره شده پلاک‌ها و افرادی است که سامانه آن‌ها را برای تکمیل خودکار (Auto-fill) در حافظه نگه داشته است.
@@ -753,7 +852,7 @@
       <!-- تب دیتابیس ابری -->
       <form id="tab-cloud-db" class="modal-form hidden">
         <p class="tab-description">
-          مشخصات دیتابیس ابری <strong>Turso (LibSQL)</strong> را وارد فرمایید تا ترددها بین تمام گیت‌های حراست همگام‌سازی شوند.
+          مشخصات دیتابیس ابری <strong>Turso (LibSQL)</strong> را وارد فرمایید تا ترددها و کاربران بین تمام گیت‌های حراست همگام‌سازی شوند.
         </p>
         <div class="form-group">
           <label class="form-label">Database URL:</label>
