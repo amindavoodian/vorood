@@ -1,42 +1,51 @@
 /**
  * db.js
- * لایه پایگاه داده (Turso Cloud + LocalStorage)
- * مجهز به سیستم خودترمیمی جداول (Auto-Migration) و کنترل سطوح دسترسی (RBAC)
+ * لایه پایگاه داده با پیکربندی هاردکد شده (Turso Cloud + LocalStorage Fallback)
  */
 
 (function () {
+  /**
+   * =========================================================================
+   * تنظیمات اتصال دیتابیس ابری (Hardcoded Configuration)
+   * آدرس دیتابیس و توکن خود را در متغیر زیر قرار دهید:
+   * =========================================================================
+   */
+  const HARDCODED_TURSO_CONFIG = {
+    databaseUrl: 'libsql://voroodkhorooj-dramindavoudian.aws-ap-northeast-1.turso.io', // آدرس دیتابیس Turso خود را اینجا بگذارید
+    authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODgzMzc0MjcsImlkIjoiMDFhMDM3NjMtNGUwMS03YjZlLWFkYzgtNzg5M2YzOThlZDhlIiwia2lkIjoiZXNsNzRzeFBkRkVydjc2ckRBRDFBdU1ZcVlwcGlJcFFfUlh3aU1EM0JDbyIsInJpZCI6Ijg1NTU5Y2E1LTQxZjYtNDFjMy05ZjdhLWJkNDk2NGVjN2JmZCJ9.ROZxJ6wb1Sf7nf3WLjrZb55DEtMSgHWVgVadNBp9qUA7FcI2iwpJk-zcS3NqcxrrpjgCDk8NkvsySdD_kEf9Dg'       // توکن دسترسی Turso خود را اینجا بگذارید
+  };
+
   const DB = {
     STORAGE_KEY: 'campus_guard_records_v8',
     USERS_KEY: 'campus_guard_users_v8',
     ACTIVE_USER_KEY: 'campus_guard_active_user_v8',
     PROFILES_KEY: 'campus_guard_profiles_v8',
-    TURSO_KEY: 'campus_guard_turso_cfg_v8',
 
+    /**
+     * دریافت تنظیمات دیتابیس از مقادیر هاردکد شده
+     */
     getTursoConfig() {
-      try {
-        return JSON.parse(localStorage.getItem(this.TURSO_KEY) || 'null');
-      } catch {
-        return null;
-      }
+      return HARDCODED_TURSO_CONFIG;
     },
 
-    saveTursoConfig(cfg) {
-      localStorage.setItem(this.TURSO_KEY, JSON.stringify(cfg));
-    },
-
-    clearTursoConfig() {
-      localStorage.removeItem(this.TURSO_KEY);
-    },
-
+    /**
+     * بررسی فعال بودن اتصال ابری
+     */
     isCloudConfigured() {
       const cfg = this.getTursoConfig();
-      return !!(cfg && cfg.databaseUrl && cfg.authToken);
+      return !!(
+        cfg &&
+        cfg.databaseUrl &&
+        cfg.authToken &&
+        !cfg.databaseUrl.includes('your-db-name') &&
+        cfg.authToken !== 'YOUR_TURSO_AUTH_TOKEN_HERE'
+      );
     },
 
     async executeTurso(sql, args = []) {
       const cfg = this.getTursoConfig();
-      if (!cfg || !cfg.databaseUrl || !cfg.authToken) {
-        throw new Error('تنظیمات اتصال به دیتابیس ابری ثبت نشده است.');
+      if (!this.isCloudConfigured()) {
+        throw new Error('تنظیمات دیتابیس ابری هنوز در کد ثبت نشده است.');
       }
 
       let baseUrl = cfg.databaseUrl.trim();
