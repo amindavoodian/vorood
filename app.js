@@ -1,7 +1,7 @@
 /**
  * app.js
- * کنترلر اصلی و منطق کاربری سامانه کنترل تردد
- * مجهز به سیستم احراز هویت، کنترل دسترسی تفکیکی (RBAC) و مدیریت مستقل مامورین ورود و خروج
+ * کنترلر اصلی و منطق کاربری سامانه ثبت و کنترل تردد
+ * مجهز به سیستم ستاپ اولیه، نشست‌های کاربری پایدار، تفکیک مامورین ورود/خروج و کنترل دسترسی (RBAC)
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -12,11 +12,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   const headerUserName = document.getElementById('header-user-name');
   const headerUserRole = document.getElementById('header-user-role');
   const btnOpenUserProfile = document.getElementById('btn-open-user-profile');
+  const btnLogoutUser = document.getElementById('btn-logout-user');
+  
+  // مودال ثبت‌نام اولیه مدیر
+  const modalSetupAdmin = document.getElementById('modal-setup-admin');
+  const formSetupAdmin = document.getElementById('form-setup-admin');
+  const setupAdminName = document.getElementById('setup-admin-name');
+  const setupAdminUsername = document.getElementById('setup-admin-username');
+  const setupAdminPin = document.getElementById('setup-admin-pin');
+  const setupAdminPinConfirm = document.getElementById('setup-admin-pin-confirm');
+  const setupErrorMsg = document.getElementById('setup-error-msg');
+
+  // مودال ورود کاربر
   const modalLogin = document.getElementById('modal-login');
   const formLoginUser = document.getElementById('form-login-user');
   const loginSelectUser = document.getElementById('login-select-user');
   const loginInputPin = document.getElementById('login-input-pin');
   const loginErrorMsg = document.getElementById('login-error-msg');
+  const btnCancelLogin = document.getElementById('btn-cancel-login');
+  const btnCloseLogin = document.getElementById('btn-close-login');
   const noReadPermissionBanner = document.getElementById('no-read-permission-banner');
 
   // --- المان‌های وضعیت دیتابیس و آمار ---
@@ -102,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editP2 = document.getElementById('edit-plate-p2');
   const editCity = document.getElementById('edit-plate-city');
 
-  // پنل کاربری در تنظیمات
+  // تب مدیریت کاربران در تنظیمات
   const userFormId = document.getElementById('user-form-id');
   const userFormName = document.getElementById('user-form-name');
   const userFormUsername = document.getElementById('user-form-username');
@@ -120,19 +134,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const userFormTitle = document.getElementById('user-form-title');
 
   // جمع شدن فیلترها در موبایل
-  if (window.innerWidth <= 820) {
+  if (window.innerWidth <= 820 && mainFilterPanel) {
     mainFilterPanel.classList.add('is-collapsed');
   }
 
   btnToggleFiltersMobile?.addEventListener('click', () => {
     const isCurrentlyCollapsed = mainFilterPanel.classList.contains('is-collapsed');
     mainFilterPanel.classList.toggle('is-collapsed');
-    filterToggleArrow.classList.toggle('is-open', isCurrentlyCollapsed);
+    filterToggleArrow?.classList.toggle('is-open', isCurrentlyCollapsed);
   });
 
   // اعلان‌های شناور (Toast)
   function showToast(type, text) {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type === 'success' ? 'toast-success' : (type === 'info' ? 'toast-info' : 'toast-error')}`;
     toast.innerHTML = type === 'success' 
@@ -153,12 +168,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ==========================================
-  // مدیریت هویت کاربر و اعمال دسترسی‌ها (RBAC)
+  // مدیریت هویت، نشست و اعمال دسترسی‌ها (RBAC)
   // ==========================================
   function updateUserHeader() {
     const user = DB.getCurrentUser();
-    if (!user) return;
+    
+    if (!user) {
+      headerUserName.textContent = 'وارد نشده';
+      headerUserRole.textContent = 'مهمان';
+      headerUserRole.className = 'header-role-badge';
+      btnOpenSettings.classList.add('hidden');
+      btnOpenEntry.classList.add('hidden');
+      btnMobileFabEntry.classList.add('hidden');
+      btnLogoutUser.classList.add('hidden');
+      noReadPermissionBanner.classList.remove('hidden');
+      statsContainer.classList.add('hidden');
+      mainFilterPanel.classList.add('hidden');
+      return;
+    }
 
+    btnLogoutUser.classList.remove('hidden');
     headerUserName.textContent = user.name;
     if (user.role === 'ADMIN') {
       headerUserRole.textContent = 'مدیر ارشد';
@@ -167,7 +196,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       headerUserRole.textContent = user.shiftName || 'نگهبان';
       headerUserRole.className = 'header-role-badge badge-role-guard';
-      // دکمه تنظیمات فقط برای مدیر نمایش داده می‌شود
       btnOpenSettings.classList.add('hidden');
     }
 
@@ -183,22 +211,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     mainFilterPanel.classList.toggle('hidden', !canRead);
   }
 
-  async function openLoginModal() {
+  // نمایش مودال ورود
+  async function openLoginModal(allowCancel = true) {
     loginErrorMsg.classList.add('hidden');
     loginInputPin.value = '';
     const users = await DB.getUsers();
     const current = DB.getCurrentUser();
 
+    if (users.length === 0) {
+      modalLogin.classList.add('hidden');
+      openSetupAdminModal();
+      return;
+    }
+
     loginSelectUser.innerHTML = users.map(u => 
-      `<option value="${u.id}" ${u.id === current.id ? 'selected' : ''}>${u.name} (${u.role === 'ADMIN' ? 'مدیر ارشد' : u.shiftName})</option>`
+      `<option value="${u.id}" ${current && u.id === current.id ? 'selected' : ''}>${u.name} (${u.role === 'ADMIN' ? 'مدیر ارشد' : u.shiftName}) - @${u.username}</option>`
     ).join('');
+
+    btnCancelLogin?.classList.toggle('hidden', !allowCancel);
+    btnCloseLogin?.classList.toggle('hidden', !allowCancel);
 
     modalLogin.classList.remove('hidden');
     setTimeout(() => loginInputPin.focus(), 150);
   }
 
-  btnOpenUserProfile?.addEventListener('click', openLoginModal);
+  // نمایش مودال ثبت‌نام اولیه مدیر ارشد
+  function openSetupAdminModal() {
+    setupErrorMsg.classList.add('hidden');
+    formSetupAdmin.reset();
+    modalSetupAdmin.classList.remove('hidden');
+    setTimeout(() => setupAdminName.focus(), 150);
+  }
 
+  // سابمیت ثبت‌نام اولیه مدیر
+  formSetupAdmin?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setupErrorMsg.classList.add('hidden');
+
+    const name = setupAdminName.value.trim();
+    const username = setupAdminUsername.value.trim();
+    const pin = setupAdminPin.value.trim();
+    const pinConfirm = setupAdminPinConfirm.value.trim();
+
+    if (pin !== pinConfirm) {
+      setupErrorMsg.textContent = 'رمز عبور و تکرار آن با یکدیگر مطابقت ندارند.';
+      setupErrorMsg.classList.remove('hidden');
+      return;
+    }
+
+    if (pin.length < 4) {
+      setupErrorMsg.textContent = 'رمز عبور باید حداقل ۴ رقم باشد.';
+      setupErrorMsg.classList.remove('hidden');
+      return;
+    }
+
+    try {
+      const admin = await DB.setupInitialAdmin({
+        name,
+        username,
+        pin,
+        shiftName: 'مدیریت ارشد سیستم'
+      });
+
+      modalSetupAdmin.classList.add('hidden');
+      updateUserHeader();
+      await populateGuardsFilterDropdown();
+      await loadData();
+      showToast('success', `حساب مدیر ارشد (${admin.name}) با موفقیت ایجاد شد و وارد شدید.`);
+    } catch (err) {
+      setupErrorMsg.textContent = err.message;
+      setupErrorMsg.classList.remove('hidden');
+    }
+  });
+
+  btnOpenUserProfile?.addEventListener('click', () => openLoginModal(true));
+
+  // فرم ورود به حساب
   formLoginUser?.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginErrorMsg.classList.add('hidden');
@@ -215,6 +303,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       loginErrorMsg.textContent = err.message;
       loginErrorMsg.classList.remove('hidden');
+    }
+  });
+
+  // خروج از حساب کاربری
+  btnLogoutUser?.addEventListener('click', () => {
+    if (confirm('آیا از خروج از حساب کاربری اطمینان دارید؟')) {
+      DB.logout();
+      updateUserHeader();
+      recordsTbody.innerHTML = '';
+      statActiveCount.textContent = '۰';
+      statTotalCount.textContent = '۰';
+      statStaffCount.textContent = '۰';
+      statExitedCount.textContent = '۰';
+      showToast('info', 'از حساب کاربری خارج شدید.');
+      openLoginModal(false);
     }
   });
 
@@ -276,6 +379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // تکمیل خودکار (Auto-fill)
   function updateKnownNamesDatalist() {
     const datalist = document.getElementById('known-names-list');
+    if (!datalist) return;
     const profiles = DB.getLocalProfiles();
     const names = new Set(Object.values(profiles).map(p => p.personName).filter(Boolean));
     datalist.innerHTML = Array.from(names).map(n => `<option value="${n}">`).join('');
@@ -317,6 +421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupPlateInputAutoConvert(inputEl, maxLen, nextEl, autoFillCallback) {
+    if (!inputEl) return;
     inputEl.addEventListener('input', (e) => {
       e.target.value = Jalali.cleanToPersianDigits(e.target.value, maxLen);
       if (e.target.value.length === maxLen && nextEl) {
@@ -327,7 +432,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   setupPlateInputAutoConvert(p1, 2, ltr, triggerPlateAutoFill);
-  ltr.addEventListener('change', (e) => {
+  ltr?.addEventListener('change', (e) => {
     updatePlateTheme(modalPlateContainer, e.target.value);
     p2.focus();
     triggerPlateAutoFill();
@@ -335,14 +440,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPlateInputAutoConvert(p2, 3, city, triggerPlateAutoFill);
   setupPlateInputAutoConvert(city, 2, null, triggerPlateAutoFill);
 
-  document.getElementById('input-person-name').addEventListener('input', (e) => {
+  document.getElementById('input-person-name')?.addEventListener('input', (e) => {
     if (entryTrafficType === 'PEDESTRIAN') {
       triggerPedestrianAutoFill(e.target.value);
     }
   });
 
   setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
-  searchPlateLtr.addEventListener('change', (e) => { 
+  searchPlateLtr?.addEventListener('change', (e) => { 
     updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
     searchPlateP2.focus();
     loadData();
@@ -351,7 +456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
 
   setupPlateInputAutoConvert(editP1, 2, editLtr);
-  editLtr.addEventListener('change', (e) => { updatePlateTheme(editPlateContainer, e.target.value); editP2.focus(); });
+  editLtr?.addEventListener('change', (e) => { updatePlateTheme(editPlateContainer, e.target.value); editP2.focus(); });
   setupPlateInputAutoConvert(editP2, 3, editCity);
   setupPlateInputAutoConvert(editCity, 2, null);
 
@@ -372,8 +477,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       entryVehicleModelGroup.classList.remove('hidden');
     }
   }
-  btnToggleVehicle.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
-  btnTogglePedestrian.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
+  btnToggleVehicle?.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
+  btnTogglePedestrian?.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
 
   // ==========================================
   // دریافت و رندر داده‌ها در جدول با تفکیک مامورین
@@ -549,7 +654,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
 
       if (isMobile) {
-        // نمای کارتی موبایل با نمایش هر دو مامور
         tr.innerHTML = `
           <td>
             <div class="mobile-card-header">
@@ -583,7 +687,6 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
             </div>
 
-            <!-- تفکیک مامور ورود و مامور خروج در موبایل -->
             <div class="mobile-officers-grid">
               <div>
                 <span style="color:var(--text-muted); font-size:0.65rem;">مامور ثبت ورود:</span>
@@ -610,7 +713,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           </td>
         `;
       } else {
-        // نمای جدولی دسکتاپ با دو ستون مجزای مامور ورود و مامور خروج
         const vehicleInfoHtml = isPedestrian
           ? '<span style="color:var(--text-muted); font-size:0.72rem;">بدون وسیله</span>'
           : `
@@ -681,39 +783,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // فیلترها
-  selectDatePreset.addEventListener('change', (e) => {
+  selectDatePreset?.addEventListener('change', (e) => {
     const val = e.target.value;
-    dayStepperGroup.classList.toggle('hidden', val !== 'TODAY');
-    customDateContainer.classList.toggle('hidden', val !== 'CUSTOM_DATE');
+    dayStepperGroup?.classList.toggle('hidden', val !== 'TODAY');
+    customDateContainer?.classList.toggle('hidden', val !== 'CUSTOM_DATE');
     if (val === 'TODAY') currentDate = Jalali.formatJalaliDate(new Date());
     loadData();
   });
 
-  btnPrevDay.addEventListener('click', () => { currentDate = Jalali.shiftJalaliDate(currentDate, -1); loadData(); });
-  btnNextDay.addEventListener('click', () => { currentDate = Jalali.shiftJalaliDate(currentDate, 1); loadData(); });
-  inputCustomDate.addEventListener('input', () => loadData());
+  btnPrevDay?.addEventListener('click', () => { currentDate = Jalali.shiftJalaliDate(currentDate, -1); loadData(); });
+  btnNextDay?.addEventListener('click', () => { currentDate = Jalali.shiftJalaliDate(currentDate, 1); loadData(); });
+  inputCustomDate?.addEventListener('input', () => loadData());
 
-  selectTimeFilter.addEventListener('change', (e) => {
-    customTimeRange.classList.toggle('hidden', e.target.value !== 'CUSTOM');
+  selectTimeFilter?.addEventListener('change', (e) => {
+    customTimeRange?.classList.toggle('hidden', e.target.value !== 'CUSTOM');
     loadData();
   });
-  timeFrom.addEventListener('input', () => loadData());
-  timeTo.addEventListener('input', () => loadData());
+  timeFrom?.addEventListener('input', () => loadData());
+  timeTo?.addEventListener('input', () => loadData());
 
-  inputSearch.addEventListener('input', () => loadData());
-  selectFilterType.addEventListener('change', () => loadData());
-  selectFilterVehCategory.addEventListener('change', () => loadData());
-  selectFilterGuard.addEventListener('change', () => loadData());
-  selectStatus.addEventListener('change', () => loadData());
+  inputSearch?.addEventListener('input', () => loadData());
+  selectFilterType?.addEventListener('change', () => loadData());
+  selectFilterVehCategory?.addEventListener('change', () => loadData());
+  selectFilterGuard?.addEventListener('change', () => loadData());
+  selectStatus?.addEventListener('change', () => loadData());
 
-  btnResetFilters.addEventListener('click', () => {
+  btnResetFilters?.addEventListener('click', () => {
     selectDatePreset.value = 'TODAY';
-    dayStepperGroup.classList.remove('hidden');
-    customDateContainer.classList.add('hidden');
+    dayStepperGroup?.classList.remove('hidden');
+    customDateContainer?.classList.add('hidden');
     currentDate = Jalali.formatJalaliDate(new Date());
     
     selectTimeFilter.value = 'ALL';
-    customTimeRange.classList.add('hidden');
+    customTimeRange?.classList.add('hidden');
     timeFrom.value = '';
     timeTo.value = '';
 
@@ -734,7 +836,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.querySelectorAll('[data-close]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.getElementById(btn.getAttribute('data-close')).classList.add('hidden');
+      document.getElementById(btn.getAttribute('data-close'))?.classList.add('hidden');
     });
   });
 
@@ -748,8 +850,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const now = new Date();
-    document.getElementById('entry-error-msg').classList.add('hidden');
-    autofillIndicator.classList.add('hidden');
+    document.getElementById('entry-error-msg')?.classList.add('hidden');
+    autofillIndicator?.classList.add('hidden');
     formNewEntry.reset();
     setEntryTrafficType('VEHICLE');
     ltr.value = 'ب';
@@ -763,14 +865,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnOpenEntry?.addEventListener('click', openNewEntryModal);
   btnMobileFabEntry?.addEventListener('click', openNewEntryModal);
 
-  document.getElementById('btn-entry-date-today').addEventListener('click', () => {
+  document.getElementById('btn-entry-date-today')?.addEventListener('click', () => {
     document.getElementById('input-entry-date').value = Jalali.formatJalaliDate(new Date());
   });
-  document.getElementById('btn-entry-time-now').addEventListener('click', () => {
+  document.getElementById('btn-entry-time-now')?.addEventListener('click', () => {
     document.getElementById('input-entry-time').value = Jalali.formatTime(new Date());
   });
 
-  formNewEntry.addEventListener('submit', async (e) => {
+  formNewEntry?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const err = document.getElementById('entry-error-msg');
     err.classList.add('hidden');
@@ -819,7 +921,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       modalEntry.classList.add('hidden');
-      showToast('success', `ورود (${person}) با مامور ثبت (${DB.getCurrentUser().name}) ذخیره شد.`);
+      showToast('success', `ورود (${person}) با مامور ثبت (${DB.getCurrentUser()?.name}) ذخیره شد.`);
       await loadData();
     } catch (ex) {
       err.textContent = ex.message;
@@ -854,7 +956,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('exit-entry-time-info').textContent = `${Jalali.toPersianDigits(record.entry_jalali_date)} - ساعت ${Jalali.toPersianDigits(record.entry_time_display)}`;
     document.getElementById('exit-entry-guard-info').textContent = `${record.entry_guard_name || record.guard_name || 'مامور کشیک'}`;
-    document.getElementById('exit-active-guard-info').textContent = `${currentUser.name} (${currentUser.shiftName || 'مامور جاری'})`;
+    document.getElementById('exit-active-guard-info').textContent = `${currentUser?.name} (${currentUser?.shiftName || 'مامور جاری'})`;
 
     document.getElementById('input-exit-date').value = Jalali.formatJalaliDate(now);
     document.getElementById('input-exit-time').value = Jalali.formatTime(now);
@@ -862,14 +964,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalExit.classList.remove('hidden');
   }
 
-  document.getElementById('btn-exit-date-today').addEventListener('click', () => {
+  document.getElementById('btn-exit-date-today')?.addEventListener('click', () => {
     document.getElementById('input-exit-date').value = Jalali.formatJalaliDate(new Date());
   });
-  document.getElementById('btn-exit-time-now').addEventListener('click', () => {
+  document.getElementById('btn-exit-time-now')?.addEventListener('click', () => {
     document.getElementById('input-exit-time').value = Jalali.formatTime(new Date());
   });
 
-  formRecordExit.addEventListener('submit', async (e) => {
+  formRecordExit?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = Number(document.getElementById('exit-record-id').value);
     const exitDate = Jalali.toLatinDigits(document.getElementById('input-exit-date').value.trim());
@@ -882,7 +984,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       modalExit.classList.add('hidden');
-      showToast('success', `خروج توسط مامور (${DB.getCurrentUser().name}) با موفقیت ثبت شد.`);
+      showToast('success', `خروج توسط مامور (${DB.getCurrentUser()?.name}) با موفقیت ثبت شد.`);
       await loadData();
     } catch (ex) {
       showToast('error', ex.message);
@@ -899,14 +1001,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editVehCatGroup = document.getElementById('edit-veh-cat-group');
   const editVehModelGroup = document.getElementById('edit-veh-model-group');
 
-  editTrafficType.addEventListener('change', (e) => {
+  editTrafficType?.addEventListener('change', (e) => {
     const isPed = e.target.value === 'PEDESTRIAN';
     editPlateSection.classList.toggle('hidden', isPed);
     editVehCatGroup.classList.toggle('hidden', isPed);
     editVehModelGroup.classList.toggle('hidden', isPed);
   });
 
-  editStatusSelect.addEventListener('change', (e) => {
+  editStatusSelect?.addEventListener('change', (e) => {
     editExitFields.classList.toggle('hidden', e.target.value !== 'EXITED');
   });
 
@@ -921,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!record) return;
 
     document.getElementById('edit-record-id').value = record.id;
-    document.getElementById('edit-error-msg').classList.add('hidden');
+    document.getElementById('edit-error-msg')?.classList.add('hidden');
     
     const isPed = record.traffic_type === 'PEDESTRIAN';
     editTrafficType.value = isPed ? 'PEDESTRIAN' : 'VEHICLE';
@@ -954,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalEdit.classList.remove('hidden');
   }
 
-  formEditRecord.addEventListener('submit', async (e) => {
+  formEditRecord?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = Number(document.getElementById('edit-record-id').value);
     const err = document.getElementById('edit-error-msg');
@@ -1017,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalDeleteConfirm.classList.remove('hidden');
   }
 
-  document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+  document.getElementById('btn-confirm-delete')?.addEventListener('click', async () => {
     const id = Number(document.getElementById('delete-target-id').value);
     try {
       await DB.deleteRecord(id);
@@ -1030,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ==========================================
-  // مدیریت کاربران، نگهبانان و چک‌باکس‌های دسترسی (ویژه مدیر ارشد)
+  // مدیریت کاربران و نگهبانان (ویژه مدیر ارشد)
   // ==========================================
   function resetUserForm() {
     userFormId.value = '';
@@ -1044,7 +1146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     permCreate.checked = true;
     permUpdate.checked = true;
     permDelete.checked = false;
-    userFormTitle.textContent = 'افزودن نگهبان جدید:';
+    userFormTitle.textContent = 'تعریف کاربر / نگهبان جدید:';
     btnCancelEditUser.classList.add('hidden');
   }
 
@@ -1057,7 +1159,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="user-item-info">
             <div>
               <strong>${u.name}</strong>
-              <span style="color:var(--text-muted); font-size:0.7rem;">(@${u.username})</span>
+              <span style="color:var(--text-muted); font-size:0.75rem;">(@${u.username})</span>
               <span class="header-role-badge ${u.role === 'ADMIN' ? 'badge-role-admin' : 'badge-role-guard'}">${u.role === 'ADMIN' ? 'مدیر ارشد' : u.shiftName}</span>
             </div>
             <div class="user-perms-badges">
@@ -1071,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <button type="button" class="btn-action-icon edit-btn" data-edit-user="${u.id}" title="ویرایش کاربر و دسترسی‌ها">
               <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
-            ${u.id !== DB.getCurrentUser().id ? `
+            ${u.id !== DB.getCurrentUser()?.id ? `
               <button type="button" class="btn-action-icon delete-btn" data-delete-user="${u.id}" title="حذف کاربر">
                 <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
@@ -1147,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         username,
         pin,
         role,
-        shiftName: shiftName || (role === 'ADMIN' ? 'مدیریت' : 'شیفت عمومی'),
+        shiftName: shiftName || (role === 'ADMIN' ? 'مدیریت و نظارت' : 'شیفت عمومی'),
         shiftHours: shiftHours || '۰۸:۰۰ الی ۱۶:۰۰',
         permissions: {
           read: role === 'ADMIN' ? true : permRead.checked,
@@ -1161,13 +1263,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       await populateUsersList();
       await populateGuardsFilterDropdown();
       updateUserHeader();
-      showToast('success', 'اطلاعات کاربر و دسترسی‌ها با موفقیت ذخیره شد.');
+      showToast('success', 'مشخصات کاربر و دسترسی‌ها ذخیره شد.');
     } catch (err) {
       showToast('error', err.message);
     }
   });
 
-  // هنگام انتخاب نقش مدیر در فرم، همه چک‌باکس‌ها به صورت خودکار تیک می‌خورند
   userFormRole?.addEventListener('change', (e) => {
     const isAdmin = e.target.value === 'ADMIN';
     if (isAdmin) {
@@ -1203,7 +1304,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     `).join('');
   }
 
-  document.getElementById('btn-clear-profiles').addEventListener('click', () => {
+  document.getElementById('btn-clear-profiles')?.addEventListener('click', () => {
     DB.saveLocalProfiles({});
     renderProfilesTab();
     updateKnownNamesDatalist();
@@ -1211,7 +1312,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   btnOpenSettings?.addEventListener('click', async () => {
-    if (DB.getCurrentUser().role !== 'ADMIN') {
+    const currentUser = DB.getCurrentUser();
+    if (!currentUser || currentUser.role !== 'ADMIN') {
       showToast('error', 'تنها مدیر ارشد سامانه به این بخش دسترسی دارد.');
       return;
     }
@@ -1225,7 +1327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('input-db-url').value = cfg.databaseUrl || '';
       document.getElementById('input-auth-token').value = cfg.authToken || '';
     }
-    document.getElementById('db-connection-result').classList.add('hidden');
+    document.getElementById('db-connection-result')?.classList.add('hidden');
     modalSettings.classList.remove('hidden');
   });
 
@@ -1234,14 +1336,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
       e.currentTarget.classList.add('active');
       const targetId = e.currentTarget.getAttribute('data-tab');
-      document.getElementById('tab-users').classList.toggle('hidden', targetId !== 'tab-users');
-      document.getElementById('tab-profiles').classList.toggle('hidden', targetId !== 'tab-profiles');
-      document.getElementById('tab-cloud-db').classList.toggle('hidden', targetId !== 'tab-cloud-db');
+      document.getElementById('tab-users')?.classList.toggle('hidden', targetId !== 'tab-users');
+      document.getElementById('tab-profiles')?.classList.toggle('hidden', targetId !== 'tab-profiles');
+      document.getElementById('tab-cloud-db')?.classList.toggle('hidden', targetId !== 'tab-cloud-db');
     });
   });
 
-  // اتصال و تست دیتابیس ابری
-  formCloudDb.addEventListener('submit', async (e) => {
+  // اتصال به دیتابیس ابری
+  formCloudDb?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = document.getElementById('input-db-url').value.trim();
     const token = document.getElementById('input-auth-token').value.trim();
@@ -1281,18 +1383,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.getElementById('btn-disconnect-db').addEventListener('click', () => {
+  document.getElementById('btn-disconnect-db')?.addEventListener('click', () => {
     DB.clearTursoConfig();
     document.getElementById('input-db-url').value = '';
     document.getElementById('input-auth-token').value = '';
-    document.getElementById('db-connection-result').classList.add('hidden');
+    document.getElementById('db-connection-result')?.classList.add('hidden');
     updateDbIndicator();
     showToast('info', 'اتصال ابری قطع گردید و اطلاعات به صورت محلی ذخیره می‌شوند.');
     loadData();
   });
 
-  // پشتیبان‌گیری
-  btnExportBackup.addEventListener('click', async () => {
+  // دریافت نسخه پشتیبان
+  btnExportBackup?.addEventListener('click', async () => {
     const records = await DB.getRecords();
     const users = await DB.getUsers();
     const profiles = DB.getLocalProfiles();
@@ -1312,7 +1414,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // راه‌اندازی اولیه سامانه
   // ==========================================
   updateDbIndicator();
-  updateUserHeader();
 
   if (DB.isCloudConfigured()) {
     try {
@@ -1323,6 +1424,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  await populateGuardsFilterDropdown();
-  await loadData();
+  // بررسی وضعیت ستاپ اولیه و نشست کاربری
+  const isSetupRequired = await DB.isSetupRequired();
+  if (isSetupRequired) {
+    updateUserHeader();
+    openSetupAdminModal();
+  } else {
+    const activeUser = DB.getCurrentUser();
+    if (!activeUser) {
+      updateUserHeader();
+      await openLoginModal(false);
+    } else {
+      updateUserHeader();
+      await populateGuardsFilterDropdown();
+      await loadData();
+    }
+  }
 });
