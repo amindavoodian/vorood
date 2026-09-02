@@ -1,12 +1,13 @@
 /**
  * app.js
- * کنترلر اصلی و منطق کاربری سامانه ثبت و کنترل تردد
+ * کنترلر اصلی، مدیریت رویدادها، جدول ترددها و اتصال ماژول‌های سامانه
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
   const DB = window.DB;
   let currentDate = Jalali.formatJalaliDate(new Date());
   let entryTrafficType = 'VEHICLE';
+  let currentFilteredRecords = [];
 
   // المان‌های هدر و احراز هویت
   const headerUserName = document.getElementById('header-user-name');
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selectFilterVehCategory = document.getElementById('select-filter-veh-category');
   const selectStatus = document.getElementById('select-status');
   const btnResetFilters = document.getElementById('btn-reset-filters');
+  const btnExportCsv = document.getElementById('btn-export-csv');
 
   // فیلتر موبایل
   const btnToggleFiltersMobile = document.getElementById('btn-toggle-filters-mobile');
@@ -116,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editP2 = document.getElementById('edit-plate-p2');
   const editCity = document.getElementById('edit-plate-city');
 
-  // تب مدیریت کاربران در تنظیمات
+  // تب مدیریت کاربران
   const userFormId = document.getElementById('user-form-id');
   const userFormName = document.getElementById('user-form-name');
   const userFormUsername = document.getElementById('user-form-username');
@@ -309,58 +311,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  function getPlateThemeClass(letter) {
-    switch (letter) {
-      case 'ت': case 'ع': case 'ک': return 'plate-theme-yellow';
-      case 'پ': case 'ث': case 'ز': case 'ف': return 'plate-theme-green';
-      case 'الف': case 'تشریفات': return 'plate-theme-red';
-      case 'ش': return 'plate-theme-navy';
-      case 'D': case 'S': return 'plate-theme-lightblue';
-      default: return 'plate-theme-white';
-    }
-  }
-
-  function updatePlateTheme(containerEl, letter) {
-    if (!containerEl) return;
-    containerEl.className = 'iran-plate-input ' + (containerEl.classList.contains('is-search') ? 'is-search ' : '') + getPlateThemeClass(letter);
-  }
-
-  function renderPlateBadge(p1Val, ltrVal, p2Val, cityVal) {
-    const themeClass = getPlateThemeClass(ltrVal);
-    const ltrDisplay = ltrVal === 'معلولین' ? '♿' : ltrVal;
-    return `
-      <div class="iran-plate-badge ${themeClass}">
-        <div class="plate-blue-strip">
-          <div class="iran-flag-icon">
-            <span class="flag-green"></span>
-            <span class="flag-white"></span>
-            <span class="flag-red"></span>
-          </div>
-          <span class="plate-country-code">I.R.</span>
-        </div>
-        <div class="plate-nums-box">
-          <span>${Jalali.toPersianDigits(p1Val)}</span>
-          <span class="plate-letter-tag">${ltrDisplay}</span>
-          <span>${Jalali.toPersianDigits(p2Val)}</span>
-        </div>
-        <div class="plate-city-box">
-          <span class="plate-iran-tag">ایران</span>
-          <span>${Jalali.toPersianDigits(cityVal)}</span>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderPersonCategoryBadge(category) {
-    switch (category) {
-      case 'STAFF': return '<span class="badge-person badge-person-staff">پرسنل</span>';
-      case 'FACULTY': return '<span class="badge-person badge-person-faculty">هیئت علمی</span>';
-      case 'STUDENT': return '<span class="badge-person badge-person-student">دانشجو</span>';
-      case 'CONTRACTOR': return '<span class="badge-person badge-person-contractor">پیمانکار</span>';
-      default: return '<span class="badge-person badge-person-guest">ارباب‌رجوع</span>';
-    }
-  }
-
   function updateKnownNamesDatalist() {
     const datalist = document.getElementById('known-names-list');
     if (!datalist) return;
@@ -404,25 +354,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function setupPlateInputAutoConvert(inputEl, maxLen, nextEl, autoFillCallback) {
-    if (!inputEl) return;
-    inputEl.addEventListener('input', (e) => {
-      e.target.value = Jalali.cleanToPersianDigits(e.target.value, maxLen);
-      if (e.target.value.length === maxLen && nextEl) {
-        nextEl.focus();
-      }
-      if (autoFillCallback) autoFillCallback();
-    });
-  }
-
-  setupPlateInputAutoConvert(p1, 2, ltr, triggerPlateAutoFill);
+  // تنظیم ورودی‌های پلاک با استفاده از PlateUtils
+  PlateUtils.setupPlateInputAutoConvert(p1, 2, ltr, triggerPlateAutoFill);
   ltr?.addEventListener('change', (e) => {
-    updatePlateTheme(modalPlateContainer, e.target.value);
+    PlateUtils.updatePlateTheme(modalPlateContainer, e.target.value);
     p2.focus();
     triggerPlateAutoFill();
   });
-  setupPlateInputAutoConvert(p2, 3, city, triggerPlateAutoFill);
-  setupPlateInputAutoConvert(city, 2, null, triggerPlateAutoFill);
+  PlateUtils.setupPlateInputAutoConvert(p2, 3, city, triggerPlateAutoFill);
+  PlateUtils.setupPlateInputAutoConvert(city, 2, null, triggerPlateAutoFill);
 
   document.getElementById('input-person-name')?.addEventListener('input', (e) => {
     if (entryTrafficType === 'PEDESTRIAN') {
@@ -430,19 +370,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
+  PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
   searchPlateLtr?.addEventListener('change', (e) => { 
-    updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
+    PlateUtils.updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
     searchPlateP2.focus();
     loadData();
   });
-  setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
-  setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
+  PlateUtils.setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
+  PlateUtils.setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
 
-  setupPlateInputAutoConvert(editP1, 2, editLtr);
-  editLtr?.addEventListener('change', (e) => { updatePlateTheme(editPlateContainer, e.target.value); editP2.focus(); });
-  setupPlateInputAutoConvert(editP2, 3, editCity);
-  setupPlateInputAutoConvert(editCity, 2, null);
+  PlateUtils.setupPlateInputAutoConvert(editP1, 2, editLtr);
+  editLtr?.addEventListener('change', (e) => {
+    PlateUtils.updatePlateTheme(editPlateContainer, e.target.value);
+    editP2.focus();
+  });
+  PlateUtils.setupPlateInputAutoConvert(editP2, 3, editCity);
+  PlateUtils.setupPlateInputAutoConvert(editCity, 2, null);
 
   function setEntryTrafficType(type) {
     entryTrafficType = type;
@@ -580,6 +523,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sP2) filtered = filtered.filter(r => Jalali.toLatinDigits(r.plate_part2 || '').includes(sP2));
     if (sCity) filtered = filtered.filter(r => Jalali.toLatinDigits(r.plate_city || '').includes(sCity));
 
+    currentFilteredRecords = filtered;
+
     statActiveCount.textContent = Jalali.toPersianDigits(allRecords.filter(r => r.status === 'ACTIVE').length);
     statTotalCount.textContent = Jalali.toPersianDigits(filtered.length);
     statStaffCount.textContent = Jalali.toPersianDigits(filtered.filter(r => r.person_category === 'STAFF' || r.person_category === 'FACULTY').length);
@@ -608,7 +553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const plateOrPedestrianHtml = isPedestrian 
         ? '<span class="badge-pedestrian"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg> عابر پیاده</span>'
-        : renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
+        : PlateUtils.renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
 
       const statusBadgeHtml = isActive 
         ? '<span class="badge-status badge-active">حاضر در پردیس</span>' 
@@ -640,7 +585,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="mobile-card-header">
               <div style="display:flex; align-items:center; gap:0.35rem;">
                 <span style="font-weight:800; font-size:0.75rem; color:var(--text-muted);">#${Jalali.toPersianDigits(idx + 1)}</span>
-                ${renderPersonCategoryBadge(r.person_category)}
+                ${PlateUtils.renderPersonCategoryBadge(r.person_category)}
               </div>
               <div>${statusBadgeHtml}</div>
             </div>
@@ -705,7 +650,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         tr.innerHTML = `
           <td class="text-center" style="color:var(--text-muted); font-size:0.75rem;">${Jalali.toPersianDigits(idx + 1)}</td>
-          <td>${renderPersonCategoryBadge(r.person_category)}</td>
+          <td>${PlateUtils.renderPersonCategoryBadge(r.person_category)}</td>
           <td>${plateOrPedestrianHtml}</td>
           <td style="font-weight:700;">${r.person_name}</td>
           <td>${vehicleInfoHtml}</td>
@@ -805,10 +750,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectFilterVehCategory.value = 'ALL';
     selectFilterGuard.value = 'ALL';
     selectStatus.value = 'ALL';
-    updatePlateTheme(searchPlateContainer, 'ب');
+    PlateUtils.updatePlateTheme(searchPlateContainer, 'ب');
 
     loadData();
     showToast('info', 'فیلترهای جستجو ریست شدند.');
+  });
+
+  // مدیریت خروجی اکسل / CSV با استفاده از ماژول ExportUtils
+  btnExportCsv?.addEventListener('click', () => {
+    if (!DB.hasPermission('read')) {
+      showToast('error', 'شما مجوز مشاهده و استخراج ترددها را ندارید.');
+      return;
+    }
+
+    try {
+      const result = ExportUtils.exportRecordsToCsv(currentFilteredRecords);
+      showToast('success', `گزارش اکسل (${Jalali.toPersianDigits(result.count)} تردد فیلترشده) دانلود شد.`);
+    } catch (err) {
+      showToast('error', err.message);
+    }
   });
 
   document.querySelectorAll('[data-close]').forEach(btn => {
@@ -829,7 +789,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     formNewEntry.reset();
     setEntryTrafficType('VEHICLE');
     ltr.value = 'ب';
-    updatePlateTheme(modalPlateContainer, 'ب');
+    PlateUtils.updatePlateTheme(modalPlateContainer, 'ب');
     document.getElementById('input-entry-date').value = Jalali.formatJalaliDate(now);
     document.getElementById('input-entry-time').value = Jalali.formatTime(now);
     modalEntry.classList.remove('hidden');
@@ -871,7 +831,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    const plateFull = entryTrafficType === 'VEHICLE' ? `${p1Val} ${ltrVal} ${p2Val} ایران ${cityVal}` : 'عابر پیاده';
+    const plateFull = entryTrafficType === 'VEHICLE' ? PlateUtils.formatPlateFull(p1Val, ltrVal, p2Val, cityVal) : 'عابر پیاده';
 
     try {
       await DB.insertEntry({
@@ -922,7 +882,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (record.traffic_type === 'PEDESTRIAN') {
       document.getElementById('exit-plate-badge').innerHTML = '<span class="badge-pedestrian">عابر پیاده</span>';
     } else {
-      document.getElementById('exit-plate-badge').innerHTML = renderPlateBadge(record.plate_part1, record.plate_letter, record.plate_part2, record.plate_city);
+      document.getElementById('exit-plate-badge').innerHTML = PlateUtils.renderPlateBadge(record.plate_part1, record.plate_letter, record.plate_part2, record.plate_city);
     }
 
     document.getElementById('exit-entry-time-info').textContent = `${Jalali.toPersianDigits(record.entry_jalali_date)} - ساعت ${Jalali.toPersianDigits(record.entry_time_display)}`;
@@ -1006,7 +966,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       editLtr.value = record.plate_letter || 'ب';
       editP2.value = Jalali.toPersianDigits(record.plate_part2 || '');
       editCity.value = Jalali.toPersianDigits(record.plate_city || '');
-      updatePlateTheme(editPlateContainer, record.plate_letter || 'ب');
+      PlateUtils.updatePlateTheme(editPlateContainer, record.plate_letter || 'ب');
     }
 
     document.getElementById('edit-person-name').value = record.person_name || '';
@@ -1044,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const isExited = statusVal === 'EXITED';
-    const plateFull = isPed ? 'عابر پیاده' : `${p1Val} ${ltrVal} ${p2Val} ایران ${cityVal}`;
+    const plateFull = isPed ? 'عابر پیاده' : PlateUtils.formatPlateFull(p1Val, ltrVal, p2Val, cityVal);
 
     try {
       await DB.updateRecord(id, {
