@@ -1,26 +1,40 @@
 /**
- * Main Application Controller & UI Logic (Optimized for Mobile & Desktop)
+ * app.js
+ * کنترلر اصلی و منطق کاربری سامانه کنترل تردد
+ * مجهز به سیستم احراز هویت، کنترل دسترسی تفکیکی (RBAC) و مدیریت مستقل مامورین ورود و خروج
  */
+
 document.addEventListener('DOMContentLoaded', async () => {
   let currentDate = Jalali.formatJalaliDate(new Date());
   let entryTrafficType = 'VEHICLE';
 
-  // المان‌های DOM
-  const displayDateEl = document.getElementById('display-jalali-date');
-  const recordsTbody = document.getElementById('records-tbody');
-  const tableEmptyState = document.getElementById('table-empty-state');
-  const tableLoading = document.getElementById('table-loading');
+  // --- المان‌های هدر و احراز هویت ---
+  const headerUserName = document.getElementById('header-user-name');
+  const headerUserRole = document.getElementById('header-user-role');
+  const btnOpenUserProfile = document.getElementById('btn-open-user-profile');
+  const modalLogin = document.getElementById('modal-login');
+  const formLoginUser = document.getElementById('form-login-user');
+  const loginSelectUser = document.getElementById('login-select-user');
+  const loginInputPin = document.getElementById('login-input-pin');
+  const loginErrorMsg = document.getElementById('login-error-msg');
+  const noReadPermissionBanner = document.getElementById('no-read-permission-banner');
+
+  // --- المان‌های وضعیت دیتابیس و آمار ---
+  const dbStatusIndicator = document.getElementById('db-status-indicator');
+  const dbStatusText = document.getElementById('db-status-text');
   const statActiveCount = document.getElementById('stat-active-count');
   const statTotalCount = document.getElementById('stat-total-count');
   const statStaffCount = document.getElementById('stat-staff-count');
   const statExitedCount = document.getElementById('stat-exited-count');
+  const statsContainer = document.getElementById('stats-container');
 
-  const dbStatusIndicator = document.getElementById('db-status-indicator');
-  const dbStatusText = document.getElementById('db-status-text');
+  // --- المان‌های فیلترها و جدول ---
+  const displayDateEl = document.getElementById('display-jalali-date');
+  const recordsTbody = document.getElementById('records-tbody');
+  const tableEmptyState = document.getElementById('table-empty-state');
+  const tableLoading = document.getElementById('table-loading');
 
-  const selectActiveGuard = document.getElementById('select-active-guard');
   const selectFilterGuard = document.getElementById('select-filter-guard');
-
   const selectDatePreset = document.getElementById('select-date-preset');
   const dayStepperGroup = document.getElementById('day-stepper-group');
   const customDateContainer = document.getElementById('custom-date-container');
@@ -49,12 +63,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mainFilterPanel = document.getElementById('main-filter-panel');
   const filterToggleArrow = document.getElementById('filter-toggle-arrow');
 
-  // مودال‌ها
+  // مودال‌ها و دکمه‌ها
   const modalEntry = document.getElementById('modal-entry');
   const modalExit = document.getElementById('modal-exit');
   const modalEdit = document.getElementById('modal-edit');
   const modalDeleteConfirm = document.getElementById('modal-delete-confirm');
   const modalSettings = document.getElementById('modal-settings');
+
+  const btnOpenEntry = document.getElementById('btn-open-entry');
+  const btnMobileFabEntry = document.getElementById('btn-mobile-fab-entry');
+  const btnOpenSettings = document.getElementById('btn-open-settings');
+  const btnExportBackup = document.getElementById('btn-export-backup');
 
   // فرم‌ها
   const formNewEntry = document.getElementById('form-new-entry');
@@ -71,7 +90,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   const editPlateContainer = document.getElementById('edit-plate-container');
   const autofillIndicator = document.getElementById('autofill-indicator');
 
-  // باز و بسته کردن فیلتر در موبایل
+  // پلاک ثبت ورود
+  const p1 = document.getElementById('plate-p1');
+  const ltr = document.getElementById('plate-ltr');
+  const p2 = document.getElementById('plate-p2');
+  const city = document.getElementById('plate-city');
+
+  // پلاک ویرایش
+  const editP1 = document.getElementById('edit-plate-p1');
+  const editLtr = document.getElementById('edit-plate-ltr');
+  const editP2 = document.getElementById('edit-plate-p2');
+  const editCity = document.getElementById('edit-plate-city');
+
+  // پنل کاربری در تنظیمات
+  const userFormId = document.getElementById('user-form-id');
+  const userFormName = document.getElementById('user-form-name');
+  const userFormUsername = document.getElementById('user-form-username');
+  const userFormPin = document.getElementById('user-form-pin');
+  const userFormRole = document.getElementById('user-form-role');
+  const userFormShift = document.getElementById('user-form-shift');
+  const userFormHours = document.getElementById('user-form-hours');
+  const permRead = document.getElementById('perm-read');
+  const permCreate = document.getElementById('perm-create');
+  const permUpdate = document.getElementById('perm-update');
+  const permDelete = document.getElementById('perm-delete');
+  const btnSaveUser = document.getElementById('btn-save-user');
+  const btnCancelEditUser = document.getElementById('btn-cancel-edit-user');
+  const usersListContainer = document.getElementById('users-list-container');
+  const userFormTitle = document.getElementById('user-form-title');
+
+  // جمع شدن فیلترها در موبایل
   if (window.innerWidth <= 820) {
     mainFilterPanel.classList.add('is-collapsed');
   }
@@ -104,6 +152,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // ==========================================
+  // مدیریت هویت کاربر و اعمال دسترسی‌ها (RBAC)
+  // ==========================================
+  function updateUserHeader() {
+    const user = DB.getCurrentUser();
+    if (!user) return;
+
+    headerUserName.textContent = user.name;
+    if (user.role === 'ADMIN') {
+      headerUserRole.textContent = 'مدیر ارشد';
+      headerUserRole.className = 'header-role-badge badge-role-admin';
+      btnOpenSettings.classList.remove('hidden');
+    } else {
+      headerUserRole.textContent = user.shiftName || 'نگهبان';
+      headerUserRole.className = 'header-role-badge badge-role-guard';
+      // دکمه تنظیمات فقط برای مدیر نمایش داده می‌شود
+      btnOpenSettings.classList.add('hidden');
+    }
+
+    // اعمال مجوز ثبت تردد (Create)
+    const canCreate = DB.hasPermission('create');
+    btnOpenEntry.classList.toggle('hidden', !canCreate);
+    btnMobileFabEntry.classList.toggle('hidden', !canCreate);
+
+    // اعمال مجوز مشاهده (Read)
+    const canRead = DB.hasPermission('read');
+    noReadPermissionBanner.classList.toggle('hidden', canRead);
+    statsContainer.classList.toggle('hidden', !canRead);
+    mainFilterPanel.classList.toggle('hidden', !canRead);
+  }
+
+  async function openLoginModal() {
+    loginErrorMsg.classList.add('hidden');
+    loginInputPin.value = '';
+    const users = await DB.getUsers();
+    const current = DB.getCurrentUser();
+
+    loginSelectUser.innerHTML = users.map(u => 
+      `<option value="${u.id}" ${u.id === current.id ? 'selected' : ''}>${u.name} (${u.role === 'ADMIN' ? 'مدیر ارشد' : u.shiftName})</option>`
+    ).join('');
+
+    modalLogin.classList.remove('hidden');
+    setTimeout(() => loginInputPin.focus(), 150);
+  }
+
+  btnOpenUserProfile?.addEventListener('click', openLoginModal);
+
+  formLoginUser?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginErrorMsg.classList.add('hidden');
+    const selectedUserId = loginSelectUser.value;
+    const pin = loginInputPin.value.trim();
+
+    try {
+      const user = await DB.authenticate(selectedUserId, pin);
+      modalLogin.classList.add('hidden');
+      updateUserHeader();
+      await populateGuardsFilterDropdown();
+      await loadData();
+      showToast('success', `خوش آمدید، ${user.name} (${user.role === 'ADMIN' ? 'مدیر ارشد' : user.shiftName})`);
+    } catch (err) {
+      loginErrorMsg.textContent = err.message;
+      loginErrorMsg.classList.remove('hidden');
+    }
+  });
+
+  // ==========================================
+  // تم‌ها و استایل پلاک خودرو
+  // ==========================================
   function getPlateThemeClass(letter) {
     switch (letter) {
       case 'ت': case 'ع': case 'ک': return 'plate-theme-yellow';
@@ -120,9 +237,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     containerEl.className = 'iran-plate-input ' + (containerEl.classList.contains('is-search') ? 'is-search ' : '') + getPlateThemeClass(letter);
   }
 
-  function renderPlateBadge(p1, ltr, p2, city) {
-    const themeClass = getPlateThemeClass(ltr);
-    const ltrDisplay = ltr === 'معلولین' ? '♿' : ltr;
+  function renderPlateBadge(p1Val, ltrVal, p2Val, cityVal) {
+    const themeClass = getPlateThemeClass(ltrVal);
+    const ltrDisplay = ltrVal === 'معلولین' ? '♿' : ltrVal;
     return `
       <div class="iran-plate-badge ${themeClass}">
         <div class="plate-blue-strip">
@@ -134,13 +251,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span class="plate-country-code">I.R.</span>
         </div>
         <div class="plate-nums-box">
-          <span>${Jalali.toPersianDigits(p1)}</span>
+          <span>${Jalali.toPersianDigits(p1Val)}</span>
           <span class="plate-letter-tag">${ltrDisplay}</span>
-          <span>${Jalali.toPersianDigits(p2)}</span>
+          <span>${Jalali.toPersianDigits(p2Val)}</span>
         </div>
         <div class="plate-city-box">
           <span class="plate-iran-tag">ایران</span>
-          <span>${Jalali.toPersianDigits(city)}</span>
+          <span>${Jalali.toPersianDigits(cityVal)}</span>
         </div>
       </div>
     `;
@@ -156,7 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Auto-Fill مراجعین و پلاک‌ها
+  // تکمیل خودکار (Auto-fill)
   function updateKnownNamesDatalist() {
     const datalist = document.getElementById('known-names-list');
     const profiles = DB.getLocalProfiles();
@@ -209,11 +326,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  const p1 = document.getElementById('plate-p1');
-  const ltr = document.getElementById('plate-ltr');
-  const p2 = document.getElementById('plate-p2');
-  const city = document.getElementById('plate-city');
-
   setupPlateInputAutoConvert(p1, 2, ltr, triggerPlateAutoFill);
   ltr.addEventListener('change', (e) => {
     updatePlateTheme(modalPlateContainer, e.target.value);
@@ -238,10 +350,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
   setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
 
-  const editP1 = document.getElementById('edit-plate-p1');
-  const editLtr = document.getElementById('edit-plate-ltr');
-  const editP2 = document.getElementById('edit-plate-p2');
-  const editCity = document.getElementById('edit-plate-city');
   setupPlateInputAutoConvert(editP1, 2, editLtr);
   editLtr.addEventListener('change', (e) => { updatePlateTheme(editPlateContainer, e.target.value); editP2.focus(); });
   setupPlateInputAutoConvert(editP2, 3, editCity);
@@ -267,9 +375,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnToggleVehicle.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
   btnTogglePedestrian.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
 
-  // دریافت و فیلتر اطلاعات جدول
+  // ==========================================
+  // دریافت و رندر داده‌ها در جدول با تفکیک مامورین
+  // ==========================================
+  async function populateGuardsFilterDropdown() {
+    const users = await DB.getUsers();
+    selectFilterGuard.innerHTML = '<option value="ALL">همه ماموران (ورود یا خروج)</option>' + 
+      users.map(u => `<option value="${u.name}">${u.name} (${u.role === 'ADMIN' ? 'مدیر' : u.shiftName})</option>`).join('');
+  }
+
   async function loadData() {
     displayDateEl.textContent = `${Jalali.getHumanReadable(currentDate)} (${Jalali.toPersianDigits(currentDate)})`;
+
+    if (!DB.hasPermission('read')) {
+      recordsTbody.innerHTML = '';
+      tableEmptyState.classList.add('hidden');
+      return;
+    }
+
     tableLoading.classList.remove('hidden');
 
     let allRecords = [];
@@ -335,7 +458,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const guardFilter = selectFilterGuard.value;
     if (guardFilter !== 'ALL') {
-      filtered = filtered.filter(r => (r.guard_name || '').includes(guardFilter));
+      filtered = filtered.filter(r => 
+        (r.entry_guard_name || '').includes(guardFilter) || 
+        (r.exit_guard_name || '').includes(guardFilter) ||
+        (r.guard_name || '').includes(guardFilter)
+      );
     }
 
     const status = selectStatus.value;
@@ -350,7 +477,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           ${r.vehicle_category || ''}
           ${r.vehicle_model || ''} 
           ${r.notes || ''}
-          ${r.guard_name || ''}
+          ${r.entry_guard_name || r.guard_name || ''}
+          ${r.exit_guard_name || ''}
         `).toLowerCase();
         return haystack.includes(query);
       });
@@ -379,11 +507,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     tableEmptyState.classList.add('hidden');
 
     const isMobile = window.innerWidth <= 820;
+    const canUpdate = DB.hasPermission('update');
+    const canDelete = DB.hasPermission('delete');
 
     filtered.forEach((r, idx) => {
       const tr = document.createElement('tr');
       const isActive = r.status === 'ACTIVE';
       const isPedestrian = r.traffic_type === 'PEDESTRIAN';
+
+      const entryOfficerName = r.entry_guard_name || r.guard_name || 'مامور کشیک';
+      const entryOfficerShift = r.entry_guard_shift || r.guard_shift || '';
+      const exitOfficerName = r.exit_guard_name || null;
+      const exitOfficerShift = r.exit_guard_shift || '';
 
       const plateOrPedestrianHtml = isPedestrian 
         ? '<span class="badge-pedestrian"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg> عابر پیاده</span>'
@@ -395,22 +530,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const actionsHtml = `
         <div class="action-group">
-          ${isActive ? `
+          ${(isActive && canUpdate) ? `
             <button class="btn-action-icon exit-btn" data-action="exit" data-id="${r.id}" title="ثبت خروج">
               <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
           ` : ''}
-          <button class="btn-action-icon edit-btn" data-action="edit" data-id="${r.id}" title="ویرایش">
-            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="btn-action-icon delete-btn" data-action="delete" data-id="${r.id}" title="حذف">
-            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          </button>
+          ${canUpdate ? `
+            <button class="btn-action-icon edit-btn" data-action="edit" data-id="${r.id}" title="ویرایش">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          ` : ''}
+          ${canDelete ? `
+            <button class="btn-action-icon delete-btn" data-action="delete" data-id="${r.id}" title="حذف">
+              <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          ` : ''}
         </div>
       `;
 
       if (isMobile) {
-        // رندر نمای کارتی موبایل
+        // نمای کارتی موبایل با نمایش هر دو مامور
         tr.innerHTML = `
           <td>
             <div class="mobile-card-header">
@@ -444,6 +583,18 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
             </div>
 
+            <!-- تفکیک مامور ورود و مامور خروج در موبایل -->
+            <div class="mobile-officers-grid">
+              <div>
+                <span style="color:var(--text-muted); font-size:0.65rem;">مامور ثبت ورود:</span>
+                <div style="font-weight:700; color:var(--primary);">${entryOfficerName}</div>
+              </div>
+              <div>
+                <span style="color:var(--text-muted); font-size:0.65rem;">مامور ثبت خروج:</span>
+                <div style="font-weight:700; color:var(--emerald);">${exitOfficerName || '—'}</div>
+              </div>
+            </div>
+
             ${r.notes ? `
               <div style="font-size:0.72rem; color:var(--text-muted); margin:0.35rem 0; line-height:1.4;">
                 <strong>علت / مقصد:</strong> ${r.notes}
@@ -452,14 +603,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <div class="mobile-card-footer">
               <div style="font-size:0.7rem; color:var(--text-muted);">
-                مامور: <strong>${r.guard_name || 'کشیک'}</strong>
+                ${entryOfficerShift ? `<small>${entryOfficerShift}</small>` : ''}
               </div>
               ${actionsHtml}
             </div>
           </td>
         `;
       } else {
-        // رندر نمای جدولی دسکتاپ
+        // نمای جدولی دسکتاپ با دو ستون مجزای مامور ورود و مامور خروج
         const vehicleInfoHtml = isPedestrian
           ? '<span style="color:var(--text-muted); font-size:0.72rem;">بدون وسیله</span>'
           : `
@@ -485,12 +636,20 @@ document.addEventListener('DOMContentLoaded', async () => {
               <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.exit_jalali_date)}</div>
             ` : '<span style="color:var(--text-muted); font-size:0.75rem;">-- : --</span>'}
           </td>
-          <td style="color:var(--text-muted); font-size:0.74rem; max-width:180px;">${r.notes || '—'}</td>
+          <td style="color:var(--text-muted); font-size:0.74rem; max-width:160px;">${r.notes || '—'}</td>
           <td>
-            <div style="display:flex; flex-direction:column; font-size:0.72rem;">
-              <span style="font-weight:700;">${r.guard_name || 'مامور کشیک'}</span>
-              <span style="font-size:0.65rem; color:var(--text-muted);">${r.guard_shift || ''}</span>
+            <div class="officer-badge-entry">
+              <span class="officer-name">${entryOfficerName}</span>
+              <span class="officer-shift">${entryOfficerShift}</span>
             </div>
+          </td>
+          <td>
+            ${exitOfficerName ? `
+              <div class="officer-badge-exit">
+                <span class="officer-name">${exitOfficerName}</span>
+                <span class="officer-shift">${exitOfficerShift}</span>
+              </div>
+            ` : '<span style="color:var(--text-muted); font-size:0.72rem;">—</span>'}
           </td>
           <td>${statusBadgeHtml}</td>
           <td class="text-center">${actionsHtml}</td>
@@ -512,7 +671,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateKnownNamesDatalist();
   }
 
-  // ریستایز پنجره برای سوئیچ پویا بین جدول و کارت
+  // تنظیم سوئیچ خودکار جدول / کارت در ریستایز
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
@@ -579,8 +738,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // ثبت تردد جدید
+  // ==========================================
+  // ثبت تردد جدید (ورود)
+  // ==========================================
   function openNewEntryModal() {
+    if (!DB.hasPermission('create')) {
+      showToast('error', 'شما مجوز ثبت تردد جدید را ندارید.');
+      return;
+    }
+
     const now = new Date();
     document.getElementById('entry-error-msg').classList.add('hidden');
     autofillIndicator.classList.add('hidden');
@@ -594,8 +760,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => p1.focus(), 150);
   }
 
-  document.getElementById('btn-open-entry')?.addEventListener('click', openNewEntryModal);
-  document.getElementById('btn-mobile-fab-entry')?.addEventListener('click', openNewEntryModal);
+  btnOpenEntry?.addEventListener('click', openNewEntryModal);
+  btnMobileFabEntry?.addEventListener('click', openNewEntryModal);
 
   document.getElementById('btn-entry-date-today').addEventListener('click', () => {
     document.getElementById('input-entry-date').value = Jalali.formatJalaliDate(new Date());
@@ -653,7 +819,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       modalEntry.classList.add('hidden');
-      showToast('success', `ورود (${person}) ثبت شد.`);
+      showToast('success', `ورود (${person}) با مامور ثبت (${DB.getCurrentUser().name}) ذخیره شد.`);
       await loadData();
     } catch (ex) {
       err.textContent = ex.message;
@@ -661,13 +827,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // ثبت خروج
+  // ==========================================
+  // ثبت خروج با ثبت مامور شیفت فعال
+  // ==========================================
   async function openExitModal(id) {
+    if (!DB.hasPermission('update')) {
+      showToast('error', 'شما دسترسی لازم جهت ثبت خروج را ندارید.');
+      return;
+    }
+
     const records = await DB.getRecords();
     const record = records.find(r => r.id === id);
     if (!record) return;
 
     const now = new Date();
+    const currentUser = DB.getCurrentUser();
+
     document.getElementById('exit-record-id').value = record.id;
     document.getElementById('exit-driver-name').textContent = record.person_name;
     
@@ -678,6 +853,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('exit-entry-time-info').textContent = `${Jalali.toPersianDigits(record.entry_jalali_date)} - ساعت ${Jalali.toPersianDigits(record.entry_time_display)}`;
+    document.getElementById('exit-entry-guard-info').textContent = `${record.entry_guard_name || record.guard_name || 'مامور کشیک'}`;
+    document.getElementById('exit-active-guard-info').textContent = `${currentUser.name} (${currentUser.shiftName || 'مامور جاری'})`;
+
     document.getElementById('input-exit-date').value = Jalali.formatJalaliDate(now);
     document.getElementById('input-exit-time').value = Jalali.formatTime(now);
 
@@ -698,22 +876,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     const exitTime = Jalali.toLatinDigits(document.getElementById('input-exit-time').value.trim());
 
     try {
-      await DB.updateRecord(id, {
-        status: 'EXITED',
+      await DB.recordExit(id, {
         exit_jalali_date: exitDate,
-        exit_time_display: exitTime,
-        exit_time: new Date().toISOString()
+        exit_time_display: exitTime
       });
 
       modalExit.classList.add('hidden');
-      showToast('success', 'خروج با موفقیت ثبت شد.');
+      showToast('success', `خروج توسط مامور (${DB.getCurrentUser().name}) با موفقیت ثبت شد.`);
       await loadData();
     } catch (ex) {
       showToast('error', ex.message);
     }
   });
 
-  // ویرایش تردد
+  // ==========================================
+  // ویرایش مشخصات تردد
+  // ==========================================
   const editStatusSelect = document.getElementById('edit-status');
   const editExitFields = document.getElementById('edit-exit-fields');
   const editTrafficType = document.getElementById('edit-traffic-type');
@@ -733,6 +911,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   async function openEditModal(id) {
+    if (!DB.hasPermission('update')) {
+      showToast('error', 'شما مجوز ویرایش اطلاعات را ندارید.');
+      return;
+    }
+
     const records = await DB.getRecords();
     const record = records.find(r => r.id === id);
     if (!record) return;
@@ -814,7 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       modalEdit.classList.add('hidden');
-      showToast('success', 'تغییرات ذخیره شد.');
+      showToast('success', 'تغییرات با موفقیت ذخیره شد.');
       await loadData();
     } catch (ex) {
       err.textContent = ex.message;
@@ -822,8 +1005,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // ==========================================
   // حذف تردد
+  // ==========================================
   function openDeleteModal(id) {
+    if (!DB.hasPermission('delete')) {
+      showToast('error', 'شما مجوز حذف رکورد را ندارید.');
+      return;
+    }
     document.getElementById('delete-target-id').value = id;
     modalDeleteConfirm.classList.remove('hidden');
   }
@@ -840,47 +1029,158 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // مدیریت ماموران و تب‌های تنظیمات
-  async function populateGuardsDropdowns() {
-    const guards = await DB.getGuards();
-    const activeId = DB.getActiveGuardId();
+  // ==========================================
+  // مدیریت کاربران، نگهبانان و چک‌باکس‌های دسترسی (ویژه مدیر ارشد)
+  // ==========================================
+  function resetUserForm() {
+    userFormId.value = '';
+    userFormName.value = '';
+    userFormUsername.value = '';
+    userFormPin.value = '';
+    userFormRole.value = 'GUARD';
+    userFormShift.value = '';
+    userFormHours.value = '';
+    permRead.checked = true;
+    permCreate.checked = true;
+    permUpdate.checked = true;
+    permDelete.checked = false;
+    userFormTitle.textContent = 'افزودن نگهبان جدید:';
+    btnCancelEditUser.classList.add('hidden');
+  }
 
-    selectActiveGuard.innerHTML = guards.map(g => 
-      `<option value="${g.id}" ${g.id === activeId ? 'selected' : ''}>${g.name} (${g.shiftName})</option>`
-    ).join('');
-
-    selectFilterGuard.innerHTML = '<option value="ALL">همه ماموران</option>' + guards.map(g => 
-      `<option value="${g.name}">${g.name}</option>`
-    ).join('');
-
-    const listContainer = document.getElementById('guards-list-container');
-    listContainer.innerHTML = guards.map(g => `
-      <div class="guard-item-row">
-        <div>
-          <strong>${g.name}</strong>
-          <span style="color:var(--primary); font-size:0.72rem; margin:0 0.3rem;">[${g.shiftName}]</span>
-          <span style="color:var(--text-muted); font-size:0.7rem;">(${g.shiftHours})</span>
+  async function populateUsersList() {
+    const users = await DB.getUsers();
+    usersListContainer.innerHTML = users.map(u => {
+      const p = u.permissions || {};
+      return `
+        <div class="user-item-row">
+          <div class="user-item-info">
+            <div>
+              <strong>${u.name}</strong>
+              <span style="color:var(--text-muted); font-size:0.7rem;">(@${u.username})</span>
+              <span class="header-role-badge ${u.role === 'ADMIN' ? 'badge-role-admin' : 'badge-role-guard'}">${u.role === 'ADMIN' ? 'مدیر ارشد' : u.shiftName}</span>
+            </div>
+            <div class="user-perms-badges">
+              <span class="perm-tag ${p.read ? 'perm-tag-on' : 'perm-tag-off'}">خواندن</span>
+              <span class="perm-tag ${p.create ? 'perm-tag-on' : 'perm-tag-off'}">ثبت ورود</span>
+              <span class="perm-tag ${p.update ? 'perm-tag-on' : 'perm-tag-off'}">ثبت خروج/ویرایش</span>
+              <span class="perm-tag ${p.delete ? 'perm-tag-on' : 'perm-tag-off'}">حذف</span>
+            </div>
+          </div>
+          <div class="action-group">
+            <button type="button" class="btn-action-icon edit-btn" data-edit-user="${u.id}" title="ویرایش کاربر و دسترسی‌ها">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            ${u.id !== DB.getCurrentUser().id ? `
+              <button type="button" class="btn-action-icon delete-btn" data-delete-user="${u.id}" title="حذف کاربر">
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            ` : ''}
+          </div>
         </div>
-        <button type="button" class="btn-action-icon delete-btn" data-delete-guard="${g.id}">
-          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-        </button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
-    listContainer.querySelectorAll('[data-delete-guard]').forEach(btn => {
+    // اکشن‌های ویرایش کاربر
+    usersListContainer.querySelectorAll('[data-edit-user]').forEach(btn => {
       btn.addEventListener('click', async (e) => {
-        const gid = Number(e.currentTarget.getAttribute('data-delete-guard'));
-        const currentList = await DB.getGuards();
-        if (currentList.length <= 1) {
-          showToast('error', 'حداقل یک مامور باید فعال باشد.');
-          return;
+        const uid = e.currentTarget.getAttribute('data-edit-user');
+        const user = (await DB.getUsers()).find(u => u.id === uid);
+        if (!user) return;
+
+        userFormId.value = user.id;
+        userFormName.value = user.name;
+        userFormUsername.value = user.username;
+        userFormPin.value = user.pin;
+        userFormRole.value = user.role;
+        userFormShift.value = user.shiftName || '';
+        userFormHours.value = user.shiftHours || '';
+        
+        permRead.checked = !!user.permissions?.read;
+        permCreate.checked = !!user.permissions?.create;
+        permUpdate.checked = !!user.permissions?.update;
+        permDelete.checked = !!user.permissions?.delete;
+
+        userFormTitle.textContent = `ویرایش مشخصات (${user.name}):`;
+        btnCancelEditUser.classList.remove('hidden');
+        userFormName.focus();
+      });
+    });
+
+    // اکشن‌های حذف کاربر
+    usersListContainer.querySelectorAll('[data-delete-user]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const uid = e.currentTarget.getAttribute('data-delete-user');
+        if (confirm('آیا از حذف این کاربر/نگهبان اطمینان دارید؟')) {
+          try {
+            await DB.deleteUser(uid);
+            await populateUsersList();
+            await populateGuardsFilterDropdown();
+            showToast('success', 'کاربر حذف شد.');
+          } catch (err) {
+            showToast('error', err.message);
+          }
         }
-        await DB.deleteGuard(gid);
-        await populateGuardsDropdowns();
       });
     });
   }
 
+  btnCancelEditUser?.addEventListener('click', resetUserForm);
+
+  btnSaveUser?.addEventListener('click', async () => {
+    const name = userFormName.value.trim();
+    const username = userFormUsername.value.trim();
+    const pin = userFormPin.value.trim();
+    const role = userFormRole.value;
+    const shiftName = userFormShift.value.trim();
+    const shiftHours = userFormHours.value.trim();
+
+    if (!name || !username || !pin) {
+      showToast('error', 'لطفاً نام، نام کاربری و پین‌کد را تکمیل فرمایید.');
+      return;
+    }
+
+    try {
+      await DB.saveUser({
+        id: userFormId.value || undefined,
+        name,
+        username,
+        pin,
+        role,
+        shiftName: shiftName || (role === 'ADMIN' ? 'مدیریت' : 'شیفت عمومی'),
+        shiftHours: shiftHours || '۰۸:۰۰ الی ۱۶:۰۰',
+        permissions: {
+          read: role === 'ADMIN' ? true : permRead.checked,
+          create: role === 'ADMIN' ? true : permCreate.checked,
+          update: role === 'ADMIN' ? true : permUpdate.checked,
+          delete: role === 'ADMIN' ? true : permDelete.checked
+        }
+      });
+
+      resetUserForm();
+      await populateUsersList();
+      await populateGuardsFilterDropdown();
+      updateUserHeader();
+      showToast('success', 'اطلاعات کاربر و دسترسی‌ها با موفقیت ذخیره شد.');
+    } catch (err) {
+      showToast('error', err.message);
+    }
+  });
+
+  // هنگام انتخاب نقش مدیر در فرم، همه چک‌باکس‌ها به صورت خودکار تیک می‌خورند
+  userFormRole?.addEventListener('change', (e) => {
+    const isAdmin = e.target.value === 'ADMIN';
+    if (isAdmin) {
+      permRead.checked = true;
+      permCreate.checked = true;
+      permUpdate.checked = true;
+      permDelete.checked = true;
+    }
+  });
+
+  // ==========================================
+  // مراجعین دائمی و تنظیمات ابری
+  // ==========================================
   function renderProfilesTab() {
     const profiles = DB.getLocalProfiles();
     const list = Object.values(profiles);
@@ -910,9 +1210,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('info', 'حافظه مراجعین پاکسازی شد.');
   });
 
-  document.getElementById('btn-open-settings').addEventListener('click', async () => {
-    await populateGuardsDropdowns();
+  btnOpenSettings?.addEventListener('click', async () => {
+    if (DB.getCurrentUser().role !== 'ADMIN') {
+      showToast('error', 'تنها مدیر ارشد سامانه به این بخش دسترسی دارد.');
+      return;
+    }
+
+    resetUserForm();
+    await populateUsersList();
     renderProfilesTab();
+    
     const cfg = DB.getTursoConfig();
     if (cfg) {
       document.getElementById('input-db-url').value = cfg.databaseUrl || '';
@@ -927,31 +1234,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
       e.currentTarget.classList.add('active');
       const targetId = e.currentTarget.getAttribute('data-tab');
-      document.getElementById('tab-guards').classList.toggle('hidden', targetId !== 'tab-guards');
+      document.getElementById('tab-users').classList.toggle('hidden', targetId !== 'tab-users');
       document.getElementById('tab-profiles').classList.toggle('hidden', targetId !== 'tab-profiles');
       document.getElementById('tab-cloud-db').classList.toggle('hidden', targetId !== 'tab-cloud-db');
     });
   });
 
-  document.getElementById('btn-add-guard').addEventListener('click', async () => {
-    const name = document.getElementById('new-guard-name').value.trim();
-    const shift = document.getElementById('new-guard-shift').value.trim();
-    const hours = document.getElementById('new-guard-hours').value.trim();
-
-    if (!name || !shift) {
-      showToast('error', 'لطفاً نام مامور و شیفت را وارد کنید.');
-      return;
-    }
-
-    await DB.addGuard(name, shift, hours);
-    document.getElementById('new-guard-name').value = '';
-    document.getElementById('new-guard-shift').value = '';
-    document.getElementById('new-guard-hours').value = '';
-    await populateGuardsDropdowns();
-    showToast('success', 'مامور جدید اضافه شد.');
-  });
-
-  // دیتابیس ابری
+  // اتصال و تست دیتابیس ابری
   formCloudDb.addEventListener('submit', async (e) => {
     e.preventDefault();
     const url = document.getElementById('input-db-url').value.trim();
@@ -964,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    resultBox.textContent = 'در حال تست ارتباط و همگام‌سازی...';
+    resultBox.textContent = 'در حال تست ارتباط و ایجاد جداول ابری...';
     resultBox.className = 'form-error';
     resultBox.style.color = 'var(--primary)';
     resultBox.style.borderColor = 'var(--primary)';
@@ -975,17 +1264,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await DB.initCloudTables();
       await DB.syncProfiles();
-      resultBox.textContent = '✓ اتصال با موفقیت برقرار و همگام‌سازی شد.';
+      resultBox.textContent = '✓ اتصال با موفقیت برقرار شد و جداول همگام شدند.';
       resultBox.style.color = 'var(--emerald)';
       resultBox.style.borderColor = 'var(--emerald)';
       updateDbIndicator();
-      showToast('success', 'اتصال به دیتابیس ابری ذخیره شد.');
-      await populateGuardsDropdowns();
+      showToast('success', 'اتصال به دیتابیس ابری فعال گردید.');
+      await populateUsersList();
+      await populateGuardsFilterDropdown();
       await loadData();
     } catch (ex) {
       DB.clearTursoConfig();
       updateDbIndicator();
-      resultBox.textContent = 'خطا در ارتباط: ' + ex.message;
+      resultBox.textContent = 'خطا در برقراری ارتباط: ' + ex.message;
       resultBox.style.color = 'var(--red)';
       resultBox.style.borderColor = 'var(--red)';
     }
@@ -997,16 +1287,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('input-auth-token').value = '';
     document.getElementById('db-connection-result').classList.add('hidden');
     updateDbIndicator();
-    showToast('info', 'اتصال ابری قطع شد و داده‌ها به صورت محلی ذخیره خواهند شد.');
+    showToast('info', 'اتصال ابری قطع گردید و اطلاعات به صورت محلی ذخیره می‌شوند.');
     loadData();
   });
 
-  // بکاپ
-  document.getElementById('btn-export-backup').addEventListener('click', async () => {
+  // پشتیبان‌گیری
+  btnExportBackup.addEventListener('click', async () => {
     const records = await DB.getRecords();
-    const guards = await DB.getGuards();
+    const users = await DB.getUsers();
     const profiles = DB.getLocalProfiles();
-    const backupData = { records, guards, profiles, export_date: currentDate, timestamp: new Date().toISOString() };
+    const backupData = { records, users, profiles, export_date: currentDate, timestamp: new Date().toISOString() };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const a = document.createElement('a');
@@ -1015,19 +1305,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    showToast('success', 'فایل پشتیبان دانلود شد.');
+    showToast('success', 'فایل پشتیبان با موفقیت دانلود شد.');
   });
 
-  // راه‌اندازی اولیه
+  // ==========================================
+  // راه‌اندازی اولیه سامانه
+  // ==========================================
   updateDbIndicator();
+  updateUserHeader();
+
   if (DB.isCloudConfigured()) {
     try {
       await DB.initCloudTables();
       await DB.syncProfiles();
     } catch (e) {
-      console.warn('عدم دسترسی اولیه به سرور ابری:', e);
+      console.warn('عدم دسترسی به سرور ابری در شروع اولیه:', e);
     }
   }
-  await populateGuardsDropdowns();
+
+  await populateGuardsFilterDropdown();
   await loadData();
 });
