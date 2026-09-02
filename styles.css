@@ -272,6 +272,15 @@ body {
 }
 .btn-emerald { background-color: var(--emerald); color: #fff; }
 .btn-emerald:hover, .btn-emerald:active { background-color: var(--emerald-hover); }
+.btn-csv {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border-color: rgba(22, 128, 61, 0.3);
+}
+.btn-csv:hover, .btn-csv:active {
+  background-color: #15803d;
+  color: #ffffff;
+}
 .btn-danger { background-color: var(--red); color: #fff; }
 .btn-danger:hover, .btn-danger:active { background-color: var(--red-hover); }
 .btn-reset { background-color: var(--red-subtle); color: var(--red); border: 1px solid rgba(220, 38, 38, 0.2); }
@@ -476,14 +485,14 @@ body {
 
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 0.6rem;
   align-items: flex-end;
 }
 
 @media (min-width: 1200px) {
   .filter-grid {
-    grid-template-columns: 1.2fr 1.3fr 0.9fr 0.9fr 0.9fr 0.9fr auto;
+    grid-template-columns: 1.2fr 1.3fr 0.9fr 0.9fr 0.9fr 0.9fr auto auto;
   }
 }
 
@@ -491,6 +500,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.filter-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .filter-label {
@@ -528,7 +543,9 @@ body {
 .time-range-input { width: 68px !important; text-align: center; padding: 0.4rem 0.2rem !important; }
 .range-separator { font-size: 0.72rem; color: var(--text-muted); }
 
-/* پلاک خودرو */
+/* ==========================================================================
+   بخش پلاک خودرو و تنظیم پس‌زمینه حروف هم‌رنگ با پلاک
+   ========================================================================== */
 .plate-wrapper {
   display: flex;
   justify-content: center;
@@ -599,6 +616,8 @@ body {
   padding: 0 3px;
   outline: none;
   cursor: pointer;
+  background-color: transparent;
+  color: inherit;
 }
 .iran-plate-input.is-search .plate-letter-box {
   font-size: 0.75rem;
@@ -616,30 +635,30 @@ body {
 }
 .plate-iran-tag { font-size: 6px; font-weight: 800; line-height: 1; }
 
-/* تم‌های رنگی پلاک */
+/* تم‌های رنگی پلاک و پس‌زمینه هم‌رنگ حروف */
 .plate-theme-white { background-color: #ffffff; color: #0f172a; border-color: #0f172a; }
 .plate-theme-white .plate-city-box { background-color: #f1f5f9; }
-.plate-theme-white .plate-letter-box { background-color: #0f172a; color: #ffffff; }
+.plate-theme-white .plate-letter-box { background-color: #ffffff; color: #0f172a; }
 
 .plate-theme-yellow { background-color: #f59e0b; color: #0f172a; border-color: #0f172a; }
 .plate-theme-yellow .plate-city-box { background-color: #d97706; }
-.plate-theme-yellow .plate-letter-box { background-color: #0f172a; color: #f59e0b; }
+.plate-theme-yellow .plate-letter-box { background-color: #f59e0b; color: #0f172a; }
 
 .plate-theme-green { background-color: #15803d; color: #ffffff; border-color: #052e16; }
 .plate-theme-green .plate-city-box { background-color: #166534; color: #fff; }
-.plate-theme-green .plate-letter-box { background-color: #ffffff; color: #15803d; }
+.plate-theme-green .plate-letter-box { background-color: #15803d; color: #ffffff; }
 
 .plate-theme-red { background-color: #dc2626; color: #ffffff; border-color: #450a0a; }
 .plate-theme-red .plate-city-box { background-color: #b91c1c; color: #fff; }
-.plate-theme-red .plate-letter-box { background-color: #ffffff; color: #dc2626; }
+.plate-theme-red .plate-letter-box { background-color: #dc2626; color: #ffffff; }
 
 .plate-theme-navy { background-color: #1e3a8a; color: #ffffff; border-color: #0f172a; }
 .plate-theme-navy .plate-city-box { background-color: #172554; color: #fff; }
-.plate-theme-navy .plate-letter-box { background-color: #ffffff; color: #1e3a8a; }
+.plate-theme-navy .plate-letter-box { background-color: #1e3a8a; color: #ffffff; }
 
 .plate-theme-lightblue { background-color: #0284c7; color: #ffffff; border-color: #0c4a6e; }
 .plate-theme-lightblue .plate-city-box { background-color: #0369a1; color: #fff; }
-.plate-theme-lightblue .plate-letter-box { background-color: #ffffff; color: #0284c7; }
+.plate-theme-lightblue .plate-letter-box { background-color: #0284c7; color: #ffffff; }
 
 /* بج‌های پلاک در جدول / کارت */
 .iran-plate-badge {
@@ -659,13 +678,21 @@ body {
 .iran-plate-badge .iran-flag-icon { width: 9px; height: 5px; }
 .iran-plate-badge .plate-country-code { font-size: 5px; }
 .iran-plate-badge .plate-nums-box { display: flex; align-items: center; gap: 3px; padding: 0 4px; font-weight: 900; }
-.iran-plate-badge .plate-letter-tag { padding: 0 3px; border-radius: 2px; font-size: 0.7rem; }
-.iran-plate-badge.plate-theme-white .plate-letter-tag { background: #0f172a; color: #fff; }
-.iran-plate-badge.plate-theme-yellow .plate-letter-tag { background: #0f172a; color: #f59e0b; }
-.iran-plate-badge.plate-theme-green .plate-letter-tag { background: #ffffff; color: #15803d; }
-.iran-plate-badge.plate-theme-red .plate-letter-tag { background: #ffffff; color: #dc2626; }
-.iran-plate-badge.plate-theme-navy .plate-letter-tag { background: #ffffff; color: #1e3a8a; }
-.iran-plate-badge.plate-theme-lightblue .plate-letter-tag { background: #ffffff; color: #0284c7; }
+.iran-plate-badge .plate-letter-tag {
+  padding: 0 3px;
+  border-radius: 2px;
+  font-size: 0.7rem;
+  background-color: transparent;
+  color: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.iran-plate-badge.plate-theme-white .plate-letter-tag { background: #ffffff; color: #0f172a; border-color: rgba(15, 23, 42, 0.2); }
+.iran-plate-badge.plate-theme-yellow .plate-letter-tag { background: #f59e0b; color: #0f172a; border-color: rgba(15, 23, 42, 0.2); }
+.iran-plate-badge.plate-theme-green .plate-letter-tag { background: #15803d; color: #ffffff; border-color: rgba(255, 255, 255, 0.3); }
+.iran-plate-badge.plate-theme-red .plate-letter-tag { background: #dc2626; color: #ffffff; border-color: rgba(255, 255, 255, 0.3); }
+.iran-plate-badge.plate-theme-navy .plate-letter-tag { background: #1e3a8a; color: #ffffff; border-color: rgba(255, 255, 255, 0.3); }
+.iran-plate-badge.plate-theme-lightblue .plate-letter-tag { background: #0284c7; color: #ffffff; border-color: rgba(255, 255, 255, 0.3); }
 .iran-plate-badge .plate-city-box { padding: 0 3px; }
 .iran-plate-badge .plate-iran-tag { font-size: 5px; }
 
@@ -1178,7 +1205,7 @@ body {
   accent-color: var(--primary);
 }
 
-/* --- اصلاح ساختار و اسکرول لیست کاربران و مراجعین --- */
+/* اسکرول لیست کاربران و مراجعین */
 .scrollable-settings-list {
   max-height: 48vh;
   min-height: 140px;
