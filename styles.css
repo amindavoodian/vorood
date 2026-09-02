@@ -138,15 +138,15 @@ body {
 .db-status-badge.is-online { border-color: rgba(5, 150, 105, 0.3); color: var(--emerald); background: var(--emerald-subtle); }
 .db-status-badge.is-local { border-color: rgba(217, 119, 6, 0.3); color: var(--amber); background: var(--amber-subtle); }
 
-/* نشانگر و ویجت کاربر فعال */
+/* ویجت کاربر فعال در هدر */
 .active-user-badge-container {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 0.25rem 0.55rem;
+  padding: 0.25rem 0.6rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -154,20 +154,23 @@ body {
   background: #e2e8f0;
   border-color: var(--border-dark);
 }
+
 .user-meta-header {
   display: flex;
   flex-direction: column;
   line-height: 1.15;
 }
+
 .header-user-name {
   font-size: 0.75rem;
   font-weight: 800;
   color: var(--text-main);
-  max-width: 110px;
+  max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .header-role-badge {
   font-size: 0.6rem;
   font-weight: 700;
@@ -199,6 +202,14 @@ body {
 }
 .btn-switch-user:hover {
   color: var(--primary);
+}
+
+.btn-logout {
+  color: var(--red);
+}
+.btn-logout:hover {
+  background-color: var(--red-subtle) !important;
+  border-color: rgba(220, 38, 38, 0.3) !important;
 }
 
 .status-dot {
@@ -304,7 +315,7 @@ body {
   flex: 1;
 }
 
-/* کارت‌های آمار سریع */
+/* کارت‌های آمار */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -517,7 +528,7 @@ body {
 .time-range-input { width: 68px !important; text-align: center; padding: 0.4rem 0.2rem !important; }
 .range-separator { font-size: 0.72rem; color: var(--text-muted); }
 
-/* پلاک استاندارد ملی */
+/* پلاک خودرو */
 .plate-wrapper {
   display: flex;
   justify-content: center;
@@ -965,8 +976,8 @@ body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(3px);
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -995,9 +1006,13 @@ body {
   animation: modalFadeIn 0.2s ease-out;
 }
 
+.modal-card.modal-card-lg {
+  max-width: 680px;
+}
+
 @media (max-width: 640px) {
   .modal-card {
-    max-height: 88vh;
+    max-height: 90vh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1018,11 +1033,19 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 1.1rem;
   border-bottom: 1px solid var(--border);
   background-color: var(--bg-subtle);
   flex-shrink: 0;
 }
+.modal-header-primary {
+  background-color: var(--primary);
+  color: #ffffff;
+}
+.modal-header-primary .modal-title {
+  color: #ffffff;
+}
+
 .modal-title { font-weight: 800; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem; }
 .modal-close {
   background: none;
@@ -1034,10 +1057,10 @@ body {
   padding: 0.2rem 0.5rem;
 }
 .modal-form {
-  padding: 1rem;
+  padding: 1.1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.85rem;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -1070,8 +1093,9 @@ body {
   border: 1px solid var(--red);
   color: var(--red);
   font-size: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.55rem;
   border-radius: var(--radius-sm);
+  line-height: 1.4;
 }
 
 .input-with-action { display: flex; gap: 0.35rem; }
@@ -1092,12 +1116,12 @@ body {
 .exit-summary-officer { font-size: 0.72rem; color: var(--primary); }
 .exit-summary-active-guard { font-size: 0.75rem; color: var(--emerald); }
 
-/* بخش مدیریت کاربران و ماتریس دسترسی‌ها در تنظیمات */
+/* تب‌های تنظیمات */
 .settings-tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-subtle); }
 .settings-tab-btn {
   flex: 1;
-  padding: 0.65rem 0.35rem;
-  font-size: 0.76rem;
+  padding: 0.7rem 0.4rem;
+  font-size: 0.78rem;
   font-weight: 700;
   text-align: center;
   border: none;
@@ -1106,12 +1130,13 @@ body {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-card); }
 
 .user-management-box {
   background: var(--bg-subtle);
-  padding: 0.75rem;
+  padding: 0.85rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
@@ -1120,7 +1145,7 @@ body {
   background: #ffffff;
   border: 1px solid var(--border-dark);
   border-radius: var(--radius-sm);
-  padding: 0.6rem;
+  padding: 0.65rem;
   margin: 0.5rem 0;
 }
 
@@ -1153,55 +1178,80 @@ body {
   accent-color: var(--primary);
 }
 
+/* --- اصلاح ساختار و اسکرول لیست کاربران و مراجعین --- */
+.scrollable-settings-list {
+  max-height: 48vh;
+  min-height: 140px;
+  overflow-y: auto;
+  margin-top: 0.65rem;
+  padding-right: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.scrollable-settings-list::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollable-settings-list::-webkit-scrollbar-track {
+  background: var(--bg-subtle);
+  border-radius: 4px;
+}
+.scrollable-settings-list::-webkit-scrollbar-thumb {
+  background: var(--border-dark);
+  border-radius: 4px;
+}
+.scrollable-settings-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .user-item-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.6rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--bg-subtle);
-  margin-bottom: 0.45rem;
-  font-size: 0.78rem;
-  gap: 0.5rem;
+  background: var(--bg-card);
+  font-size: 0.8rem;
+  gap: 0.6rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .user-item-info {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.3rem;
   min-width: 0;
 }
 
 .user-perms-badges {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.3rem;
   flex-wrap: wrap;
 }
 
 .perm-tag {
-  font-size: 0.62rem;
+  font-size: 0.64rem;
   font-weight: 700;
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 2px 5px;
+  border-radius: 4px;
 }
-.perm-tag-on { background: var(--emerald-subtle); color: var(--emerald); border: 1px solid rgba(5, 150, 105, 0.2); }
-.perm-tag-off { background: #f1f5f9; color: var(--text-muted); text-decoration: line-through; }
+.perm-tag-on { background: var(--emerald-subtle); color: var(--emerald); border: 1px solid rgba(5, 150, 105, 0.25); }
+.perm-tag-off { background: var(--bg-subtle); color: var(--text-muted); text-decoration: line-through; }
 
-.section-micro-title { font-size:0.75rem; font-weight:700; margin-bottom:0.5rem; }
-.scrollable-settings-list { max-height: 220px; overflow-y: auto; margin-top: 0.5rem; }
-.tab-description { font-size:0.75rem; color:var(--text-muted); line-height:1.5; }
-.profiles-info-text { font-size:0.78rem; font-weight:700; color:var(--primary); }
+.section-micro-title { font-size: 0.78rem; font-weight: 800; margin-bottom: 0.4rem; color: var(--text-main); }
+.tab-description { font-size: 0.76rem; color: var(--text-muted); line-height: 1.5; }
+.profiles-info-text { font-size: 0.8rem; font-weight: 800; color: var(--primary); }
 .profile-item-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.6rem;
+  padding: 0.6rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--bg-subtle);
-  margin-bottom: 0.4rem;
-  font-size: 0.78rem;
+  background: var(--bg-card);
+  font-size: 0.8rem;
 }
 
 /* توست و پیام‌ها */
