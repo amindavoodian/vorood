@@ -354,7 +354,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // تنظیم ورودی‌های پلاک با استفاده از PlateUtils
   PlateUtils.setupPlateInputAutoConvert(p1, 2, ltr, triggerPlateAutoFill);
   ltr?.addEventListener('change', (e) => {
     PlateUtils.updatePlateTheme(modalPlateContainer, e.target.value);
@@ -582,59 +581,65 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (isMobile) {
         tr.innerHTML = `
           <td>
-            <div class="mobile-card-header">
-              <div style="display:flex; align-items:center; gap:0.35rem;">
-                <span style="font-weight:800; font-size:0.75rem; color:var(--text-muted);">#${Jalali.toPersianDigits(idx + 1)}</span>
-                ${PlateUtils.renderPersonCategoryBadge(r.person_category)}
+            <div class="mc-card">
+              <!-- ردیف هدر کارت: شماره، نوع شخص و وضعیت حضور -->
+              <div class="mc-header">
+                <div class="mc-header-right">
+                  <span class="mc-index">#${Jalali.toPersianDigits(idx + 1)}</span>
+                  ${PlateUtils.renderPersonCategoryBadge(r.person_category)}
+                </div>
+                <div>${statusBadgeHtml}</div>
               </div>
-              <div>${statusBadgeHtml}</div>
-            </div>
 
-            <div class="mobile-card-row">
-              <span style="font-weight:800; font-size:0.95rem;">${r.person_name}</span>
-              <div>${plateOrPedestrianHtml}</div>
-            </div>
+              <!-- ردیف نام و مشخصه پلاک -->
+              <div class="mc-body">
+                <div class="mc-person">
+                  <span class="mc-name">${r.person_name}</span>
+                  ${!isPedestrian ? `
+                    <div class="mc-vehicle-tags">
+                      <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
+                      ${r.vehicle_model ? `<span class="badge-veh-model">${r.vehicle_model}</span>` : ''}
+                    </div>
+                  ` : ''}
+                </div>
+                <div>${plateOrPedestrianHtml}</div>
+              </div>
 
-            ${!isPedestrian ? `
-              <div class="mobile-card-row">
-                <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
-                <span class="badge-veh-model">${r.vehicle_model || ''}</span>
+              <!-- شبکه منظم زمان ورود و خروج -->
+              <div class="mc-info-grid">
+                <div class="mc-info-item">
+                  <span class="mc-info-label">زمان ورود:</span>
+                  <span class="mc-info-val">${Jalali.toPersianDigits(r.entry_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.entry_jalali_date)})</small></span>
+                </div>
+                <div class="mc-info-item">
+                  <span class="mc-info-label">زمان خروج:</span>
+                  <span class="mc-info-val">${r.exit_time_display ? `${Jalali.toPersianDigits(r.exit_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.exit_jalali_date)})</small>` : '-- : --'}</span>
+                </div>
               </div>
-            ` : ''}
 
-            <div class="mobile-card-meta-grid">
-              <div class="mobile-meta-item">
-                <span class="mobile-meta-label">ورود:</span>
-                <span class="mobile-meta-value">${Jalali.toPersianDigits(r.entry_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.entry_jalali_date)})</small></span>
+              <!-- اطلاعات مأموران ثبت‌کننده -->
+              <div class="mc-officers-grid">
+                <div>
+                  <span class="mc-officer-title">مأمور ورود:</span>
+                  <div class="mc-officer-name-in">${entryOfficerName}</div>
+                </div>
+                <div>
+                  <span class="mc-officer-title">مأمور خروج:</span>
+                  <div class="mc-officer-name-out">${exitOfficerName || '—'}</div>
+                </div>
               </div>
-              <div class="mobile-meta-item">
-                <span class="mobile-meta-label">خروج:</span>
-                <span class="mobile-meta-value">${r.exit_time_display ? `${Jalali.toPersianDigits(r.exit_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.exit_jalali_date)})</small>` : '-- : --'}</span>
-              </div>
-            </div>
 
-            <div class="mobile-officers-grid">
-              <div>
-                <span style="color:var(--text-muted); font-size:0.65rem;">مامور ثبت ورود:</span>
-                <div style="font-weight:700; color:var(--primary);">${entryOfficerName}</div>
-              </div>
-              <div>
-                <span style="color:var(--text-muted); font-size:0.65rem;">مامور ثبت خروج:</span>
-                <div style="font-weight:700; color:var(--emerald);">${exitOfficerName || '—'}</div>
-              </div>
-            </div>
+              ${r.notes ? `
+                <div class="mc-notes">
+                  <strong>علت / مقصد:</strong> ${r.notes}
+                </div>
+              ` : ''}
 
-            ${r.notes ? `
-              <div style="font-size:0.72rem; color:var(--text-muted); margin:0.35rem 0; line-height:1.4;">
-                <strong>علت / مقصد:</strong> ${r.notes}
+              <!-- فوتر کارت و دکمه‌های عملیات -->
+              <div class="mc-footer">
+                <span class="mc-shift-tag">${entryOfficerShift ? `${entryOfficerShift}` : ''}</span>
+                ${actionsHtml}
               </div>
-            ` : ''}
-
-            <div class="mobile-card-footer">
-              <div style="font-size:0.7rem; color:var(--text-muted);">
-                ${entryOfficerShift ? `<small>${entryOfficerShift}</small>` : ''}
-              </div>
-              ${actionsHtml}
             </div>
           </td>
         `;
@@ -756,7 +761,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('info', 'فیلترهای جستجو ریست شدند.');
   });
 
-  // مدیریت خروجی اکسل / CSV با استفاده از ماژول ExportUtils
   btnExportCsv?.addEventListener('click', () => {
     if (!DB.hasPermission('read')) {
       showToast('error', 'شما مجوز مشاهده و استخراج ترددها را ندارید.');
