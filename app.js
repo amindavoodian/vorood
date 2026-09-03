@@ -1,15 +1,12 @@
 /**
  * app.js
  * کنترلر اصلی سامانه ثبت و کنترل تردد انتظامات و حراست
- * نسخه پایدار، بهینه‌سازی‌شده و عاری از هرگونه خطای نگارشی (SyntaxError)
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // توابع کمکی تبدیل ارقام جهت اطمینان از عملکرد یکپارچه
   const toPersian = (val) => (window.Jalali && typeof Jalali.toPersianDigits === 'function') ? Jalali.toPersianDigits(String(val ?? '')) : String(val ?? '');
   const toLatin = (val) => (window.Jalali && typeof Jalali.toLatinDigits === 'function') ? Jalali.toLatinDigits(String(val ?? '')) : String(val ?? '');
 
-  // ایجاد لایه محافظ برای PlateUtils در صورت عدم بارگذاری فایل جانبی
   if (!window.PlateUtils) {
     window.PlateUtils = {
       getPlateThemeClass(letter) {
@@ -83,13 +80,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const PlateUtils = window.PlateUtils;
   const DB = window.DB;
+  const SmartSuggest = window.SmartSuggest;
 
-  // متغیرهای سراسری وضعیت
   let currentDate = (window.Jalali && Jalali.formatJalaliDate) ? Jalali.formatJalaliDate(new Date()) : '1405/01/01';
   let entryTrafficType = 'VEHICLE';
   let currentFilteredRecords = [];
 
-  // عناصر DOM هدر و نوار بالا
   const headerUserName = document.getElementById('header-user-name');
   const headerUserRole = document.getElementById('header-user-role');
   const btnOpenUserProfile = document.getElementById('btn-open-user-profile');
@@ -98,14 +94,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const dbStatusText = document.getElementById('db-status-text');
   const noReadPermissionBanner = document.getElementById('no-read-permission-banner');
 
-  // کارت‌های آمار
   const statActiveCount = document.getElementById('stat-active-count');
   const statTotalCount = document.getElementById('stat-total-count');
   const statStaffCount = document.getElementById('stat-staff-count');
   const statExitedCount = document.getElementById('stat-exited-count');
   const statsContainer = document.getElementById('stats-container');
 
-  // فیلترها و جدول
   const displayDateEl = document.getElementById('display-jalali-date');
   const recordsTbody = document.getElementById('records-tbody');
   const tableEmptyState = document.getElementById('table-empty-state');
@@ -136,12 +130,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnResetFilters = document.getElementById('btn-reset-filters');
   const btnExportCsv = document.getElementById('btn-export-csv');
 
-  // فیلتر واکنش‌گرای موبایل
   const btnToggleFiltersMobile = document.getElementById('btn-toggle-filters-mobile');
   const mainFilterPanel = document.getElementById('main-filter-panel');
   const filterToggleArrow = document.getElementById('filter-toggle-arrow');
 
-  // مودال‌ها
   const modalSetupAdmin = document.getElementById('modal-setup-admin');
   const formSetupAdmin = document.getElementById('form-setup-admin');
   const setupAdminName = document.getElementById('setup-admin-name');
@@ -182,19 +174,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const modalPlateContainer = document.getElementById('modal-plate-container');
   const editPlateContainer = document.getElementById('edit-plate-container');
   const autofillIndicator = document.getElementById('autofill-indicator');
+  const btnUndoAutofill = document.getElementById('btn-undo-autofill');
+  const autofillInfoLabel = document.getElementById('autofill-info-label');
 
-  // پلاک ورودی‌ها
   const p1 = document.getElementById('plate-p1');
   const ltr = document.getElementById('plate-ltr');
   const p2 = document.getElementById('plate-p2');
   const city = document.getElementById('plate-city');
+  const inputPersonName = document.getElementById('input-person-name');
 
   const editP1 = document.getElementById('edit-plate-p1');
   const editLtr = document.getElementById('edit-plate-ltr');
   const editP2 = document.getElementById('edit-plate-p2');
   const editCity = document.getElementById('edit-plate-city');
 
-  // فرم مدیریت کاربران
   const userFormId = document.getElementById('user-form-id');
   const userFormName = document.getElementById('user-form-name');
   const userFormUsername = document.getElementById('user-form-username');
@@ -211,7 +204,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const usersListContainer = document.getElementById('users-list-container');
   const userFormTitle = document.getElementById('user-form-title');
 
-  // وضعیت اولیه فیلتر در موبایل
   if (window.innerWidth <= 820 && mainFilterPanel) {
     mainFilterPanel.classList.add('is-collapsed');
   }
@@ -222,19 +214,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     filterToggleArrow?.classList.toggle('is-open', isCollapsed);
   });
 
-  // بستن آسان مودال‌ها با کلیک خارج کادر یا کلید Escape
   document.querySelectorAll('.modal-backdrop').forEach((backdrop) => {
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) {
         if (backdrop === modalLogin && btnCancelLogin?.classList.contains('hidden')) return;
         if (backdrop === modalSetupAdmin) return;
         backdrop.classList.add('hidden');
+        SmartSuggest?.hideSuggestionBox();
       }
     });
   });
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (SmartSuggest && SmartSuggest.activePopupEl) {
+        SmartSuggest.hideSuggestionBox();
+        return;
+      }
       document.querySelectorAll('.modal-backdrop:not(.hidden)').forEach((m) => {
         if (m === modalSetupAdmin) return;
         if (m === modalLogin && btnCancelLogin?.classList.contains('hidden')) return;
@@ -427,85 +423,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  function updateKnownNamesDatalist() {
-    const datalist = document.getElementById('known-names-list');
-    if (!datalist || !DB) return;
-    const profiles = DB.getLocalProfiles();
-    const names = new Set(Object.values(profiles).map((p) => p.personName).filter(Boolean));
-    datalist.innerHTML = Array.from(names).map((n) => `<option value="${n}">`).join('');
-  }
-
-  function triggerPlateAutoFill() {
-    if (!DB || !p1 || !p2 || !city) return;
-    const p1Val = toPersian(p1.value.trim());
-    const ltrVal = ltr.value;
-    const p2Val = toPersian(p2.value.trim());
-    const cityVal = toPersian(city.value.trim());
-
-    if (p1Val.length === 2 && p2Val.length === 3 && cityVal.length === 2) {
-      const match = DB.findProfileByPlate(p1Val, ltrVal, p2Val, cityVal);
-      if (match) {
-        document.getElementById('input-person-name').value = match.personName || '';
-        document.getElementById('input-person-category').value = match.personCategory || 'GUEST';
-        document.getElementById('input-vehicle-category').value = match.vehicleCategory || 'سواری';
-        document.getElementById('input-vehicle-model').value = match.vehicleModel || '';
-        if (match.defaultNotes && !document.getElementById('input-notes').value) {
-          document.getElementById('input-notes').value = match.defaultNotes;
-        }
-        autofillIndicator?.classList.remove('hidden');
-      } else {
-        autofillIndicator?.classList.add('hidden');
-      }
-    }
-  }
-
-  function triggerPedestrianAutoFill(name) {
-    if (!DB || !name || name.trim().length < 3) return;
-    const match = DB.findProfileByName(name.trim());
-    if (match) {
-      document.getElementById('input-person-category').value = match.personCategory || 'GUEST';
-      if (match.defaultNotes && !document.getElementById('input-notes').value) {
-        document.getElementById('input-notes').value = match.defaultNotes;
-      }
-      autofillIndicator?.classList.remove('hidden');
-    }
-  }
-
-  PlateUtils.setupPlateInputAutoConvert(p1, 2, ltr, triggerPlateAutoFill);
-  ltr?.addEventListener('change', (e) => {
-    PlateUtils.updatePlateTheme(modalPlateContainer, e.target.value);
-    p2?.focus();
-    triggerPlateAutoFill();
-  });
-  PlateUtils.setupPlateInputAutoConvert(p2, 3, city, triggerPlateAutoFill);
-  PlateUtils.setupPlateInputAutoConvert(city, 2, null, triggerPlateAutoFill);
-
-  document.getElementById('input-person-name')?.addEventListener('input', (e) => {
-    if (entryTrafficType === 'PEDESTRIAN') {
-      triggerPedestrianAutoFill(e.target.value);
-    }
-  });
-
-  PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
-  searchPlateLtr?.addEventListener('change', (e) => {
-    PlateUtils.updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
-    searchPlateP2?.focus();
-    loadData();
-  });
-  PlateUtils.setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
-  PlateUtils.setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
-
-  PlateUtils.setupPlateInputAutoConvert(editP1, 2, editLtr);
-  editLtr?.addEventListener('change', (e) => {
-    PlateUtils.updatePlateTheme(editPlateContainer, e.target.value);
-    editP2?.focus();
-  });
-  PlateUtils.setupPlateInputAutoConvert(editP2, 3, editCity);
-  PlateUtils.setupPlateInputAutoConvert(editCity, 2, null);
-
   function setEntryTrafficType(type) {
     entryTrafficType = type;
-    autofillIndicator?.classList.add('hidden');
     if (type === 'PEDESTRIAN') {
       btnTogglePedestrian?.classList.add('active');
       btnToggleVehicle?.classList.remove('active');
@@ -522,6 +441,164 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   btnToggleVehicle?.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
   btnTogglePedestrian?.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
+
+  // =========================================================================
+  // اعمال مشخصات کاندیدای هوشمند بر فرم ورود
+  // =========================================================================
+  function applyCandidateToForm(candidate) {
+    // ذخیره وضعیت قبلی جهت امکان بازگشت (Undo)
+    SmartSuggest.lastAppliedBackup = {
+      trafficType: entryTrafficType,
+      p1: p1.value,
+      ltr: ltr.value,
+      p2: p2.value,
+      city: city.value,
+      name: inputPersonName.value,
+      cat: document.getElementById('input-person-category').value,
+      vehCat: document.getElementById('input-vehicle-category').value,
+      vehModel: document.getElementById('input-vehicle-model').value,
+      notes: document.getElementById('input-notes').value
+    };
+
+    setEntryTrafficType(candidate.trafficType || 'VEHICLE');
+
+    if (candidate.trafficType !== 'PEDESTRIAN') {
+      p1.value = toPersian(candidate.platePart1 || '');
+      ltr.value = candidate.plateLetter || 'ب';
+      p2.value = toPersian(candidate.platePart2 || '');
+      city.value = toPersian(candidate.plateCity || '');
+      PlateUtils.updatePlateTheme(modalPlateContainer, candidate.plateLetter || 'ب');
+
+      [p1, ltr, p2, city].forEach((el) => {
+        el.classList.add('autofilled-field');
+        setTimeout(() => el.classList.remove('autofilled-field'), 1600);
+      });
+    }
+
+    inputPersonName.value = candidate.personName || '';
+    document.getElementById('input-person-category').value = candidate.personCategory || 'GUEST';
+    document.getElementById('input-vehicle-category').value = candidate.vehicleCategory || 'سواری';
+    document.getElementById('input-vehicle-model').value = candidate.vehicleModel || '';
+
+    if (candidate.notes && !document.getElementById('input-notes').value) {
+      document.getElementById('input-notes').value = candidate.notes;
+    }
+
+    [inputPersonName, document.getElementById('input-person-category')].forEach((el) => {
+      el.classList.add('autofilled-field');
+      setTimeout(() => el.classList.remove('autofilled-field'), 1600);
+    });
+
+    if (autofillInfoLabel) {
+      autofillInfoLabel.textContent = `مشخصات «${candidate.personName}» بر اساس تردد قبلی بارگذاری شد.`;
+    }
+    autofillIndicator?.classList.remove('hidden');
+    SmartSuggest.hideSuggestionBox();
+  }
+
+  btnUndoAutofill?.addEventListener('click', () => {
+    if (!SmartSuggest.lastAppliedBackup) return;
+    const b = SmartSuggest.lastAppliedBackup;
+    setEntryTrafficType(b.trafficType);
+    p1.value = b.p1;
+    ltr.value = b.ltr;
+    p2.value = b.p2;
+    city.value = b.city;
+    PlateUtils.updatePlateTheme(modalPlateContainer, b.ltr || 'ب');
+    inputPersonName.value = b.name;
+    document.getElementById('input-person-category').value = b.cat;
+    document.getElementById('input-vehicle-category').value = b.vehCat;
+    document.getElementById('input-vehicle-model').value = b.vehModel;
+    document.getElementById('input-notes').value = b.notes;
+
+    autofillIndicator?.classList.add('hidden');
+    SmartSuggest.lastAppliedBackup = null;
+    showToast('info', 'اطلاعات فرم به حالت قبل بازگردانی شد.');
+  });
+
+  // =========================================================================
+  // شنودگرهای حدس هوشمند پلاک و نام
+  // =========================================================================
+  async function triggerSmartPlateSearch() {
+    if (!SmartSuggest) return;
+    const p1Val = p1.value.trim();
+    const ltrVal = ltr.value;
+    const p2Val = p2.value.trim();
+    const cityVal = city.value.trim();
+
+    if (!p1Val && !p2Val && !cityVal) {
+      SmartSuggest.hideSuggestionBox();
+      return;
+    }
+
+    const matches = await SmartSuggest.searchCandidates({
+      type: 'PLATE',
+      p1: p1Val,
+      ltr: ltrVal,
+      p2: p2Val,
+      city: cityVal
+    });
+
+    if (matches.length > 0) {
+      SmartSuggest.showSuggestionBox(matches, modalPlateContainer, (cand) => applyCandidateToForm(cand));
+    } else {
+      SmartSuggest.hideSuggestionBox();
+    }
+  }
+
+  PlateUtils.setupPlateInputAutoConvert(p1, 2, ltr, triggerSmartPlateSearch);
+  ltr?.addEventListener('change', (e) => {
+    PlateUtils.updatePlateTheme(modalPlateContainer, e.target.value);
+    p2?.focus();
+    triggerSmartPlateSearch();
+  });
+  PlateUtils.setupPlateInputAutoConvert(p2, 3, city, triggerSmartPlateSearch);
+  PlateUtils.setupPlateInputAutoConvert(city, 2, null, triggerSmartPlateSearch);
+
+  inputPersonName?.addEventListener('input', async (e) => {
+    const val = e.target.value;
+    if (!val || val.trim().length < 2) {
+      SmartSuggest?.hideSuggestionBox();
+      return;
+    }
+
+    const matches = await SmartSuggest.searchCandidates({
+      type: 'NAME',
+      nameQuery: val
+    });
+
+    if (matches.length > 0) {
+      SmartSuggest.showSuggestionBox(matches, inputPersonName, (cand) => applyCandidateToForm(cand));
+    } else {
+      SmartSuggest?.hideSuggestionBox();
+    }
+  });
+
+  // پشتیبانی از کلیدهای Enter و Esc در فیلد نام
+  inputPersonName?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && SmartSuggest?.activePopupEl && SmartSuggest.currentMatches.length > 0) {
+      e.preventDefault();
+      applyCandidateToForm(SmartSuggest.currentMatches[0]);
+    }
+  });
+
+  // فیلترهای جستجو
+  PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
+  searchPlateLtr?.addEventListener('change', (e) => {
+    PlateUtils.updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
+    searchPlateP2?.focus();
+    loadData();
+  });
+  PlateUtils.setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
+  PlateUtils.setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
+
+  PlateUtils.setupPlateInputAutoConvert(editP1, 2, editLtr);
+  editLtr?.addEventListener('change', (e) => {
+    PlateUtils.updatePlateTheme(editPlateContainer, e.target.value);
+    editP2?.focus();
+  });
+  PlateUtils.setupPlateInputAutoConvert(editP2, 3, editCity);
+  PlateUtils.setupPlateInputAutoConvert(editCity, 2, null);
 
   async function populateGuardsFilterDropdown() {
     if (!selectFilterGuard || !DB) return;
@@ -670,8 +747,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const exitOfficerName = r.exit_guard_name || null;
       const exitOfficerShift = r.exit_guard_shift || '';
 
+      // جایگزینی آیکون عابر پیاده با walking.svg
       const plateOrPedestrianHtml = isPedestrian
-        ? '<span class="badge-pedestrian"><svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="4" r="2"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg> عابر پیاده</span>'
+        ? '<span class="badge-pedestrian"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>'
         : PlateUtils.renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
 
       const statusBadgeHtml = isActive
@@ -760,7 +838,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
       } else {
         const vehicleInfoHtml = isPedestrian
-          ? '<span style="color:var(--text-faint); font-size:0.75rem;">عابر پیاده</span>'
+          ? '<span style="color:var(--text-faint); font-size:0.75rem;"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>'
           : `
             <div>
               <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
@@ -815,8 +893,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('[data-action="delete"]').forEach((btn) => {
       btn.addEventListener('click', (e) => openDeleteModal(Number(e.currentTarget.getAttribute('data-id'))));
     });
-
-    updateKnownNamesDatalist();
   }
 
   let resizeTimer;
@@ -895,6 +971,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('[data-close]').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.getElementById(btn.getAttribute('data-close'))?.classList.add('hidden');
+      SmartSuggest?.hideSuggestionBox();
     });
   });
 
@@ -911,6 +988,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setEntryTrafficType('VEHICLE');
     ltr.value = 'ب';
     PlateUtils.updatePlateTheme(modalPlateContainer, 'ب');
+    SmartSuggest?.hideSuggestionBox();
+    SmartSuggest.lastAppliedBackup = null;
+
     if (window.Jalali) {
       document.getElementById('input-entry-date').value = Jalali.formatJalaliDate(now);
       document.getElementById('input-entry-time').value = Jalali.formatTime(now);
@@ -938,7 +1018,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ltrVal = ltr.value;
     const p2Val = toPersian(p2.value.trim());
     const cityVal = toPersian(city.value.trim());
-    const person = document.getElementById('input-person-name').value.trim();
+    const person = inputPersonName.value.trim();
     const category = document.getElementById('input-person-category').value;
     const vehicleCat = document.getElementById('input-vehicle-category').value;
     const vehicleModel = document.getElementById('input-vehicle-model').value.trim();
@@ -977,6 +1057,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         notes: notes
       });
 
+      SmartSuggest?.hideSuggestionBox();
       modalEntry.classList.add('hidden');
       showToast('success', `ورود (${person}) با موفقیت ثبت شد.`);
       await loadData();
@@ -1003,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('exit-driver-name').textContent = record.person_name;
 
     if (record.traffic_type === 'PEDESTRIAN') {
-      document.getElementById('exit-plate-badge').innerHTML = '<span class="badge-pedestrian">عابر پیاده</span>';
+      document.getElementById('exit-plate-badge').innerHTML = '<span class="badge-pedestrian"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>';
     } else {
       document.getElementById('exit-plate-badge').innerHTML = PlateUtils.renderPlateBadge(record.plate_part1, record.plate_letter, record.plate_part2, record.plate_city);
     }
@@ -1342,7 +1423,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     container.innerHTML = list.map((p) => {
       const isPed = p.trafficType === 'PEDESTRIAN';
-      const detailInfo = isPed ? 'عابر پیاده' : `${p.plateFull || ''} - ${p.vehicleCategory || ''}`;
+      const detailInfo = isPed ? '<img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده' : `${p.plateFull || ''} - ${p.vehicleCategory || ''}`;
       return `
         <div class="profile-item-row">
           <div>
@@ -1359,7 +1440,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirm('آیا از پاکسازی کل حافظه مراجعین اطمینان دارید؟')) {
       if (DB) DB.saveLocalProfiles({});
       renderProfilesTab();
-      updateKnownNamesDatalist();
       showToast('info', 'حافظه مراجعین پاکسازی شد.');
     }
   });
@@ -1458,7 +1538,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('success', 'پشتیبان سیستم دانلود شد.');
   });
 
-  // اجرای فرآیند راه‌اندازی اولیه
+  // راه‌اندازی اولیه
   updateDbIndicator();
 
   if (DB && DB.isCloudConfigured && DB.isCloudConfigured()) {
