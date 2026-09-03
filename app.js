@@ -1,7 +1,7 @@
 /**
  * app.js
  * کنترلر اصلی سامانه ثبت و کنترل تردد انتظامات و حراست
- * مجهز به سیستم صفحه‌بندی هوشمند، فیلتر جامع، خروجی داده‌ها و مدیریت یادداشت‌های چسبان
+ * مجهز به سیستم صفحه‌بندی هوشمند، فیلتر جامع، خروجی داده‌ها، انتخابگر چرخشی و مدیریت یادداشت‌ها
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -86,8 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let currentDate = (window.Jalali && Jalali.formatJalaliDate) ? Jalali.formatJalaliDate(new Date()) : '1405/01/01';
   let entryTrafficType = 'VEHICLE';
   
-  // متغیرهای سیستم صفحه‌بندی و فیلتر جامع
-  let currentFilteredRecords = []; // حاوی تمام رکوردهای منطبق بر فیلترها (جهت خروجی اکسل کامل)
+  let currentFilteredRecords = [];
   let currentPage = 1;
   let pageSize = 25;
 
@@ -110,7 +109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tableEmptyState = document.getElementById('table-empty-state');
   const tableLoading = document.getElementById('table-loading');
 
-  // عناصر بخش صفحه‌بندی
   const paginationContainer = document.getElementById('pagination-container');
   const pgRangeEl = document.getElementById('pg-range');
   const pgTotalEl = document.getElementById('pg-total');
@@ -215,6 +213,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCancelEditUser = document.getElementById('btn-cancel-edit-user');
   const usersListContainer = document.getElementById('users-list-container');
   const userFormTitle = document.getElementById('user-form-title');
+
+  // اتصال همگانی فیلدهای تاریخ و ساعت به ماژول اسکرول چرخشی (Scroll Picker)
+  if (window.ScrollPicker) {
+    ScrollPicker.attach(inputCustomDate, 'DATE');
+    ScrollPicker.attach(timeFrom, 'TIME');
+    ScrollPicker.attach(timeTo, 'TIME');
+
+    ScrollPicker.attach(document.getElementById('input-entry-date'), 'DATE');
+    ScrollPicker.attach(document.getElementById('input-entry-time'), 'TIME');
+
+    ScrollPicker.attach(document.getElementById('input-exit-date'), 'DATE');
+    ScrollPicker.attach(document.getElementById('input-exit-time'), 'TIME');
+
+    ScrollPicker.attach(document.getElementById('edit-entry-date'), 'DATE');
+    ScrollPicker.attach(document.getElementById('edit-entry-time'), 'TIME');
+    ScrollPicker.attach(document.getElementById('edit-exit-date'), 'DATE');
+    ScrollPicker.attach(document.getElementById('edit-exit-time'), 'TIME');
+  }
 
   if (window.innerWidth <= 820 && mainFilterPanel) {
     mainFilterPanel.classList.add('is-collapsed');
@@ -498,7 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (autofillInfoLabel) {
-      autofillInfoLabel.textContent = `مشخصات «${candidate.personName}» بر اساس تردد قبلی بارگذاری شد.`;
+      autofillInfoLabel.textContent = `مشخصات «${candidate.personName}» بارگذاری شد.`;
     }
     autofillIndicator?.classList.remove('hidden');
     SmartSuggest.hideSuggestionBox();
@@ -521,7 +537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     autofillIndicator?.classList.add('hidden');
     SmartSuggest.lastAppliedBackup = null;
-    showToast('info', 'اطلاعات فرم به حالت قبل بازگردانی شد.');
+    showToast('info', 'اطلاعات فرم بازگردانی شد.');
   });
 
   async function triggerSmartPlateSearch() {
@@ -586,7 +602,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // فیلترهای جستجو
   PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => { currentPage = 1; loadData(); });
   searchPlateLtr?.addEventListener('change', (e) => {
     PlateUtils.updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
@@ -612,7 +627,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       users.map((u) => `<option value="${u.name}">${u.name} (${u.role === 'ADMIN' ? 'مدیر' : u.shiftName})</option>`).join('');
   }
 
-  // رویداد تغییر تعداد نمایش در صفحه
   pgSizeSelect?.addEventListener('change', (e) => {
     pageSize = Number(e.target.value) || 25;
     currentPage = 1;
@@ -627,7 +641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (DB && !DB.hasPermission('read')) {
       recordsTbody.innerHTML = '';
-      tableEmptyState?.classList.add('hidden');
+      tableEmptyState?.classList.remove('hidden');
       paginationContainer?.classList.add('hidden');
       return;
     }
@@ -732,7 +746,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sP2) filtered = filtered.filter((r) => toLatin(r.plate_part2 || '').includes(sP2));
     if (sCity) filtered = filtered.filter((r) => toLatin(r.plate_city || '').includes(sCity));
 
-    // ذخیره کل مجموعه فیلترشده جهت استخراج خروجی اکسل کامل
     currentFilteredRecords = filtered;
 
     if (statActiveCount) statActiveCount.textContent = toPersian(allRecords.filter((r) => r.status === 'ACTIVE').length);
@@ -743,9 +756,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderRecords();
   }
 
-  /**
-   * رندر داده‌ها با منطق دقیق صفحه‌بندی
-   */
   function renderRecords() {
     recordsTbody.innerHTML = '';
     const totalItems = currentFilteredRecords.length;
@@ -770,7 +780,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canDelete = DB ? DB.hasPermission('delete') : true;
 
     pageRecords.forEach((r, idx) => {
-      const globalIndex = startIndex + idx + 1; // شماره ردیف پیوسته در تمام صفحات
+      const globalIndex = startIndex + idx + 1;
       const tr = document.createElement('tr');
       const isActive = r.status === 'ACTIVE';
       const isPedestrian = r.traffic_type === 'PEDESTRIAN';
@@ -801,8 +811,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             </button>
           ` : ''}
           ${canDelete ? `
-            <button class="btn-action-icon delete-btn" data-action="delete" data-id="${r.id}" title="حذف">
-              <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <button class="btn-action-icon delete-btn" data-action="delete" data-id="${r.id}" title="حذف رکورد">
+              <svg class="svg-icon" viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
             </button>
           ` : ''}
         </div>
@@ -890,31 +905,30 @@ document.addEventListener('DOMContentLoaded', async () => {
           </td>
           <td>
             ${r.exit_time_display ? `
-              <div style="font-weight:700; color:var(--emerald);">${toPersian(r.exit_time_display)}</div>
-              <div style="font-size:0.7rem; color:var(--text-muted);">${toPersian(r.exit_jalali_date)}</div>
-            ` : '<span style="color:var(--text-faint); font-size:0.76rem;">—</span>'}
-          </td>
-          <td style="color:var(--text-body); font-size:0.76rem; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.notes || ''}">${r.notes || '—'}</td>
-          <td>
-            <div class="officer-badge-entry">
-              <span class="officer-name">${entryOfficerName}</span>
-              <span class="officer-shift">${entryOfficerShift}</span>
-            </div>
-          </td>
-          <td>
-            ${exitOfficerName ? `
-              <div class="officer-badge-exit">
-                <span class="officer-name">${exitOfficerName}</span>
-                <span class="officer-shift">${exitOfficerShift}</span>
-              </div>
-            ` : '<span style="color:var(--text-faint); font-size:0.75rem;">—</span>'}
-          </td>
-          <td>${statusBadgeHtml}</td>
-          <td class="text-center">${actionsHtml}</td>
-        `;
-      }
-      recordsTbody.appendChild(tr);
-    });
+              <div style="font-weight:700; color:var(--emerald);">${toPersian(r.exit_time_display)}</div><div style="font-size:0.7rem; color:var(--text-muted);">${toPersian(r.exit_jalali_date)}</div>
+                    ` : '<span style="color:var(--text-faint); font-size:0.76rem;">—</span>'}
+                  </td>
+                  <td style="color:var(--text-body); font-size:0.76rem; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.notes || ''}">${r.notes || '—'}</td>
+                  <td>
+                    <div class="officer-badge-entry">
+                      <span class="officer-name">${entryOfficerName}</span>
+                      <span class="officer-shift">${entryOfficerShift}</span>
+                    </div>
+                  </td>
+                  <td>
+                    ${exitOfficerName ? `
+                      <div class="officer-badge-exit">
+                        <span class="officer-name">${exitOfficerName}</span>
+                        <span class="officer-shift">${exitOfficerShift}</span>
+                      </div>
+                    ` : '<span style="color:var(--text-faint); font-size:0.75rem;">—</span>'}
+                  </td>
+                  <td>${statusBadgeHtml}</td>
+                  <td class="text-center">${actionsHtml}</td>
+                `;
+              }
+              recordsTbody.appendChild(tr);
+            });
 
     document.querySelectorAll('[data-action="exit"]').forEach((btn) => {
       btn.addEventListener('click', (e) => openExitModal(Number(e.currentTarget.getAttribute('data-id'))));
@@ -926,13 +940,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', (e) => openDeleteModal(Number(e.currentTarget.getAttribute('data-id'))));
     });
 
-    // رندر بخش دکمه‌های صفحه‌بندی
     renderPaginationUI(totalItems, totalPages, startIndex, endIndex);
   }
 
-  /**
-   * رندر نوار صفحه‌بندی با طراحی استاندارد و دکمه‌های چندگانه
-   */
   function renderPaginationUI(totalItems, totalPages, startIndex, endIndex) {
     if (!paginationContainer) return;
     paginationContainer.classList.remove('hidden');
@@ -943,7 +953,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!pgButtonsContainer) return;
     pgButtonsContainer.innerHTML = '';
 
-    // دکمه صفحه قبل
     const prevBtn = document.createElement('button');
     prevBtn.className = `btn-pg-nav ${currentPage === 1 ? 'disabled' : ''}`;
     prevBtn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
@@ -957,7 +966,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     pgButtonsContainer.appendChild(prevBtn);
 
-    // تولید شماره صفحات با مدیریت فواصل (Ellipsis)
     const pagesToShow = [];
     if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pagesToShow.push(i);
@@ -991,7 +999,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    // دکمه صفحه بعد
     const nextBtn = document.createElement('button');
     nextBtn.className = `btn-pg-nav ${currentPage === totalPages ? 'disabled' : ''}`;
     nextBtn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
@@ -1024,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnPrevDay?.addEventListener('click', () => { if (window.Jalali) currentDate = Jalali.shiftJalaliDate(currentDate, -1); currentPage = 1; loadData(); });
   btnNextDay?.addEventListener('click', () => { if (window.Jalali) currentDate = Jalali.shiftJalaliDate(currentDate, 1); currentPage = 1; loadData(); });
   inputCustomDate?.addEventListener('input', () => { currentPage = 1; loadData(); });
+  inputCustomDate?.addEventListener('change', () => { currentPage = 1; loadData(); });
 
   selectTimeFilter?.addEventListener('change', (e) => {
     customTimeRange?.classList.toggle('hidden', e.target.value !== 'CUSTOM');
@@ -1031,7 +1039,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadData();
   });
   timeFrom?.addEventListener('input', () => { currentPage = 1; loadData(); });
+  timeFrom?.addEventListener('change', () => { currentPage = 1; loadData(); });
   timeTo?.addEventListener('input', () => { currentPage = 1; loadData(); });
+  timeTo?.addEventListener('change', () => { currentPage = 1; loadData(); });
 
   inputSearch?.addEventListener('input', () => { currentPage = 1; loadData(); });
   selectFilterType?.addEventListener('change', () => { currentPage = 1; loadData(); });
@@ -1066,7 +1076,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('info', 'فیلترها ریست شدند.');
   });
 
-  // دانلود خروجی اکسل کامل (شامل تمام رکوردهای تطبیق‌یافته، نه فقط صفحه جاری)
   btnExportCsv?.addEventListener('click', () => {
     if (DB && !DB.hasPermission('read')) {
       showToast('error', 'شما مجوز مشاهده و دریافت خروجی را ندارید.');
@@ -1420,7 +1429,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </button>
             ${u.id !== DB.getCurrentUser()?.id ? `
               <button type="button" class="btn-action-icon delete-btn" data-delete-user="${u.id}" title="حذف کاربر">
-                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
               </button>
             ` : ''}
           </div>
@@ -1655,7 +1664,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('success', 'پشتیبان سیستم دانلود شد.');
   });
 
-  // راه‌اندازی اولیه
   updateDbIndicator();
 
   if (DB && DB.isCloudConfigured && DB.isCloudConfigured()) {
@@ -1683,7 +1691,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // راه‌اندازی ماژول یادداشت‌های چسبان (Sticky Notes)
   if (window.StickyNotes) {
     window.StickyNotes.init();
   }
