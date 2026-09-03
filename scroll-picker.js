@@ -1,9 +1,3 @@
-/**
- * scroll-picker.js
- * ماژول فوق‌پیشرفته انتخابگر چرخشی (Scroll/Wheel Drum Picker) برای تاریخ شمسی و ساعت
- * سازگار با لمس، درگ، چرخ موس و اسنپ خودکار
- */
-
 (function () {
   const toPersian = (v) => (window.Jalali && Jalali.toPersianDigits) ? Jalali.toPersianDigits(String(v ?? '')) : String(v ?? '');
   const toLatin = (v) => (window.Jalali && Jalali.toLatinDigits) ? Jalali.toLatinDigits(String(v ?? '')) : String(v ?? '');
@@ -23,7 +17,10 @@
     }
 
     initDOM() {
-      if (document.getElementById('scroll-picker-modal')) return;
+      if (document.getElementById('scroll-picker-modal')) {
+        this.modalEl = document.getElementById('scroll-picker-modal');
+        return;
+      }
 
       const modal = document.createElement('div');
       modal.id = 'scroll-picker-modal';
@@ -32,7 +29,7 @@
         <div class="scroll-picker-sheet">
           <div class="sp-header">
             <button type="button" class="sp-btn-cancel" id="sp-btn-cancel">انصراف</button>
-            <div class="sp-title" id="sp-title">انتخاب تاریخ</div>
+            <div class="sp-title" id="sp-title">انتخاب چرخشی</div>
             <button type="button" class="sp-btn-confirm" id="sp-btn-confirm">تأیید</button>
           </div>
 
@@ -54,14 +51,18 @@
 
       document.getElementById('sp-btn-cancel')?.addEventListener('click', () => this.close());
       document.getElementById('sp-btn-confirm')?.addEventListener('click', () => this.confirmSelection());
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !this.modalEl.classList.contains('hidden')) {
+          this.close();
+        }
+      });
     }
 
     attach(inputEl, mode = 'DATE') {
       if (!inputEl) return;
       inputEl.setAttribute('readonly', 'readonly');
       inputEl.style.cursor = 'pointer';
-
-      // اضافه کردن استایل ظاهری فیلد انتخابگر
       inputEl.classList.add('sp-interactive-input');
 
       const openFn = (e) => {
@@ -85,7 +86,7 @@
         this.renderDateQuickBar(quickBar);
         this.buildDateWheels();
       } else {
-        titleEl.textContent = 'انتخاب ساعت (اسکرول چرخشی)';
+        titleEl.textContent = 'انتخاب زمان (اسکرول چرخشی)';
         this.renderTimeQuickBar(quickBar);
         this.buildTimeWheels();
       }
@@ -94,7 +95,9 @@
     }
 
     close() {
-      this.modalEl.classList.add('hidden');
+      if (this.modalEl) {
+        this.modalEl.classList.add('hidden');
+      }
       this.activeInput = null;
     }
 
@@ -105,7 +108,7 @@
         <button type="button" class="sp-quick-btn" data-date-preset="tomorrow">فردا</button>
       `;
 
-      container.querySelectorAll('[data-date-preset]').forEach(btn => {
+      container.querySelectorAll('[data-date-preset]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const type = btn.getAttribute('data-date-preset');
           const now = new Date();
@@ -123,13 +126,14 @@
 
     renderTimeQuickBar(container) {
       container.innerHTML = `
-        <button type="button" class="sp-quick-btn" data-time-preset="now">الان</button>
+        <button type="button" class="sp-quick-btn" data-time-preset="now">هم‌اکنون</button>
         <button type="button" class="sp-quick-btn" data-time-preset="plus15">+۱۵ دقیقه</button>
+        <button type="button" class="sp-quick-btn" data-time-preset="plus30">+۳۰ دقیقه</button>
         <button type="button" class="sp-quick-btn" data-time-preset="shift-morning">۰۸:۰۰</button>
         <button type="button" class="sp-quick-btn" data-time-preset="shift-evening">۱۴:۰۰</button>
       `;
 
-      container.querySelectorAll('[data-time-preset]').forEach(btn => {
+      container.querySelectorAll('[data-time-preset]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const preset = btn.getAttribute('data-time-preset');
           const now = new Date();
@@ -137,6 +141,9 @@
             this.setTimeWheels(now.getHours(), now.getMinutes());
           } else if (preset === 'plus15') {
             now.setMinutes(now.getMinutes() + 15);
+            this.setTimeWheels(now.getHours(), now.getMinutes());
+          } else if (preset === 'plus30') {
+            now.setMinutes(now.getMinutes() + 30);
             this.setTimeWheels(now.getHours(), now.getMinutes());
           } else if (preset === 'shift-morning') {
             this.setTimeWheels(8, 0);
@@ -150,7 +157,7 @@
     buildDateWheels() {
       const container = document.getElementById('sp-columns-container');
       const val = toLatin(this.activeInput?.value || '');
-      let [initY, initM, initD] = val.split('/').map(Number);
+      let [initY, initM, initD] = val.split(/[\/\-]/).map(Number);
 
       const now = new Date();
       let currentJalali = [1405, 1, 1];
@@ -177,19 +184,15 @@
         </div>
       `;
 
-      // ستون سال (از 1400 تا 1410)
       const years = [];
-      for (let y = 1400; y <= 1410; y++) years.push(y);
-      this.populateWheel('wheel-year', years.map(y => ({ val: y, label: toPersian(y) })), year);
+      for (let y = 1400; y <= 1412; y++) years.push(y);
+      this.populateWheel('wheel-year', years.map((y) => ({ val: y, label: toPersian(y) })), year);
 
-      // ستون ماه
       const months = MONTH_NAMES.map((name, idx) => ({ val: idx + 1, label: `${toPersian(idx + 1)} - ${name}` }));
       this.populateWheel('wheel-month', months, month);
 
-      // ستون روز
       this.updateDayWheel(year, month, day);
 
-      // به‌روزرسانی روزها با تغییر ماه یا سال
       const onMonthOrYearChange = () => {
         const curY = this.getSelectedValue('wheel-year');
         const curM = this.getSelectedValue('wheel-month');
@@ -199,18 +202,18 @@
 
       document.getElementById('wheel-year')?.addEventListener('scroll', () => {
         clearTimeout(this.yTimer);
-        this.yTimer = setTimeout(onMonthOrYearChange, 150);
+        this.yTimer = setTimeout(onMonthOrYearChange, 120);
       });
       document.getElementById('wheel-month')?.addEventListener('scroll', () => {
         clearTimeout(this.mTimer);
-        this.mTimer = setTimeout(onMonthOrYearChange, 150);
+        this.mTimer = setTimeout(onMonthOrYearChange, 120);
       });
     }
 
     updateDayWheel(year, month, selectDay = 1) {
       let maxDays = 31;
       if (month > 6 && month <= 11) maxDays = 30;
-      else if (month === 12) maxDays = 29; // اسفند
+      else if (month === 12) maxDays = 29;
 
       const days = [];
       for (let d = 1; d <= maxDays; d++) {
@@ -255,21 +258,19 @@
 
       const itemHeight = 40;
       let html = '<div class="sp-spacer"></div>';
-      items.forEach(item => {
+      items.forEach((item) => {
         html += `<div class="sp-item" data-val="${item.val}">${item.label}</div>`;
       });
       html += '<div class="sp-spacer"></div>';
       wheel.innerHTML = html;
 
-      // اسکرول به موقعیت المان انتخابی
-      const targetIdx = items.findIndex(i => i.val === selectedVal);
+      const targetIdx = items.findIndex((i) => i.val === selectedVal);
       if (targetIdx !== -1) {
         setTimeout(() => {
           wheel.scrollTop = targetIdx * itemHeight;
         }, 30);
       }
 
-      // اجازه کلیک مستقیم روی آیتم جهت اسکرول فوری
       wheel.querySelectorAll('.sp-item').forEach((el, index) => {
         el.addEventListener('click', () => {
           wheel.scrollTo({ top: index * itemHeight, behavior: 'smooth' });
@@ -290,24 +291,25 @@
     }
 
     setDateWheels(jalaliStr) {
-      const parts = toLatin(jalaliStr).split('/').map(Number);
+      const parts = toLatin(jalaliStr).split(/[\/\-]/).map(Number);
       if (parts.length === 3) {
         const [y, m, d] = parts;
-        this.populateWheel('wheel-year', this.getRange(1400, 1410).map(i => ({ val: i, label: toPersian(i) })), y);
+        const years = [];
+        for (let i = 1400; i <= 1412; i++) years.push(i);
+        this.populateWheel('wheel-year', years.map((i) => ({ val: i, label: toPersian(i) })), y);
         this.populateWheel('wheel-month', MONTH_NAMES.map((n, i) => ({ val: i + 1, label: `${toPersian(i + 1)} - ${n}` })), m);
         this.updateDayWheel(y, m, d);
       }
     }
 
     setTimeWheels(h, m) {
-      this.populateWheel('wheel-hour', this.getRange(0, 23).map(i => ({ val: i, label: toPersian(pad(i)) })), h);
-      this.populateWheel('wheel-minute', this.getRange(0, 59).map(i => ({ val: i, label: toPersian(pad(i)) })), m);
-    }
+      const hours = [];
+      for (let i = 0; i < 24; i++) hours.push({ val: i, label: toPersian(pad(i)) });
+      const minutes = [];
+      for (let i = 0; i < 60; i++) minutes.push({ val: i, label: toPersian(pad(i)) });
 
-    getRange(start, end) {
-      const arr = [];
-      for (let i = start; i <= end; i++) arr.push(i);
-      return arr;
+      this.populateWheel('wheel-hour', hours, h);
+      this.populateWheel('wheel-minute', minutes, m);
     }
 
     confirmSelection() {
@@ -326,7 +328,6 @@
         this.activeInput.value = toPersian(formatted);
       }
 
-      // شلیک رویداد change و input برای هماهنگی با کنترلر
       this.activeInput.dispatchEvent(new Event('input', { bubbles: true }));
       this.activeInput.dispatchEvent(new Event('change', { bubbles: true }));
 
