@@ -122,7 +122,7 @@ body {
 }
 
 .header-container {
-  max-width: 1440px;
+  max-width: 1560px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -199,6 +199,32 @@ body {
   .db-status-badge { padding: 0.4rem; }
 }
 
+.btn-notes-toggle {
+  position: relative;
+  display: inline-flex;
+}
+@media (min-width: 1025px) {
+  .btn-notes-toggle { display: none; }
+}
+
+.sn-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--rose);
+  color: #ffffff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  min-width: 17px;
+  height: 17px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  box-shadow: 0 1px 3px rgba(244, 63, 94, 0.4);
+}
+
 .active-user-badge-container {
   display: flex;
   align-items: center;
@@ -255,7 +281,7 @@ body {
 }
 
 /* ==========================================================================
-   دکمه‌ها و عناصر بصری
+   دکمه‌ها
    ========================================================================== */
 .btn {
   display: inline-flex;
@@ -382,7 +408,7 @@ body {
   background-color: var(--rose-subtle);
 }
 
-/* تصویر عابر پیاده و آیکون‌های SVG عکسی */
+/* تصویر عابر پیاده و آیکون‌های SVG */
 .svg-icon-img {
   width: 16px;
   height: 16px;
@@ -393,14 +419,29 @@ body {
 }
 
 /* ==========================================================================
-   محتوای اصلی و کارت‌های آمار
+   چیدمان اصلی ۲ ستونه (محتوا + ستون یادداشت‌ها در سمت چپ دسکتاپ)
    ========================================================================== */
-.main-content {
-  max-width: 1440px;
+.app-layout-wrapper {
+  display: flex;
+  flex-direction: row;
   width: 100%;
+  max-width: 1560px;
   margin: 0 auto;
+  gap: 1rem;
   padding: 0.85rem 1rem;
+  align-items: flex-start;
   flex: 1;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .app-layout-wrapper {
+    padding: 0.75rem;
+  }
 }
 
 .permission-alert-banner {
@@ -417,6 +458,9 @@ body {
   gap: 0.5rem;
 }
 
+/* ==========================================================================
+   کارت‌های آمار
+   ========================================================================== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -845,7 +889,7 @@ body {
 .officer-shift { font-size: 0.64rem; color: var(--text-faint); }
 
 /* ==========================================================================
-   جدول و کارت‌های موبایل
+   جدول داده‌ها و کارت‌های موبایل
    ========================================================================== */
 .table-container {
   background-color: var(--bg-surface);
@@ -931,6 +975,536 @@ body {
   .mc-shift-tag { font-size: 0.68rem; color: var(--text-faint); }
 }
 
+/* ==========================================================================
+   نوار صفحه‌بندی هوشمند (Pagination Bar)
+   ========================================================================== */
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-subtle);
+  border-top: 1px solid var(--border);
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+@media (max-width: 820px) {
+  .pagination-bar {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-top: 0.75rem;
+    box-shadow: var(--shadow-xs);
+  }
+}
+
+.pagination-info {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pagination-info strong {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.pagination-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pagination-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-pg-nav,
+.btn-pg-num {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pg-nav:hover:not(.disabled),
+.btn-pg-num:hover:not(.active) {
+  background-color: var(--bg-subtle);
+  border-color: var(--border-hover);
+}
+
+.btn-pg-num.active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.btn-pg-nav.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--border-light);
+}
+
+.pg-ellipsis {
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  padding: 0 0.25rem;
+}
+
+.pagination-size-box {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.pg-select {
+  min-height: 32px !important;
+  padding: 0.2rem 0.5rem !important;
+  font-size: 0.74rem !important;
+  width: auto !important;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   ستون عمودی یادداشت‌های چسبان (Sticky Notes Sidebar) در دسکتاپ
+   ========================================================================== */
+.sticky-notes-sidebar {
+  width: 310px;
+  min-width: 310px;
+  position: sticky;
+  top: 66px;
+  max-height: calc(100vh - 82px);
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  padding: 0.85rem;
+}
+
+@media (max-width: 1024px) {
+  .sticky-notes-sidebar { display: none; }
+}
+
+.sn-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 0.75rem;
+}
+
+.sn-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.btn-sn-add {
+  padding: 0.3rem 0.65rem;
+  min-height: 30px;
+  font-size: 0.72rem;
+}
+
+.sticky-notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  overflow-y: auto;
+  padding-left: 2px;
+  flex: 1;
+}
+
+.sn-empty-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  gap: 0.4rem;
+}
+.sn-empty-placeholder svg {
+  width: 32px;
+  height: 32px;
+}
+
+/* ==========================================================================
+   طراحی کارت‌های یادداشت چسبان (Post-it با رنگ‌های مات و ملایم)
+   ========================================================================== */
+.sticky-note-card {
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sticky-note-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.08);
+}
+
+/* تم‌های رنگی ملایم و پاستلی متناسب با ظاهر سامانه */
+.sn-color-yellow {
+  background-color: #fef9c3;
+  border-color: #fef08a;
+  color: #713f12;
+}
+.sn-color-green {
+  background-color: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #064e3b;
+}
+.sn-color-blue {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+.sn-color-rose {
+  background-color: #fff1f2;
+  border-color: #fecdd3;
+  color: #881337;
+}
+.sn-color-purple {
+  background-color: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #4c1d95;
+}
+.sn-color-slate {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.sn-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sn-author-info {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.sn-pin-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.sn-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.btn-sn-action {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: inherit;
+  opacity: 0.6;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+}
+.btn-sn-action:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+.btn-sn-delete:hover {
+  color: var(--rose);
+}
+
+.sn-card-body {
+  font-size: 0.76rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.sn-content-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.sn-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.64rem;
+  opacity: 0.8;
+  padding-top: 0.2rem;
+}
+
+.sn-reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.07);
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.63rem;
+}
+
+.sn-date-tag {
+  font-size: 0.62rem;
+}
+
+/* پالت انتخاب رنگ یادداشت در مودال */
+.sn-color-picker-group {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 0.25rem;
+}
+
+.color-swatch-item {
+  cursor: pointer;
+  position: relative;
+}
+.color-swatch-item input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.color-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: block;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.color-swatch-item input[type="radio"]:checked + .color-circle {
+  transform: scale(1.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+}
+
+.cc-yellow { background-color: #fef08a; }
+.cc-green  { background-color: #a7f3d0; }
+.cc-blue   { background-color: #bfdbfe; }
+.cc-rose   { background-color: #fecdd3; }
+.cc-purple { background-color: #ddd6fe; }
+.cc-slate  { background-color: #cbd5e1; }
+
+.reminder-toggle-section {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 0.8rem;
+}
+
+/* ==========================================================================
+   کشوی موبایل یادداشت‌های چسبان (Mobile Drawer)
+   ========================================================================== */
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mobile-drawer-panel {
+  width: 100%;
+  max-width: 380px;
+  background-color: var(--bg-surface);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  box-shadow: var(--shadow-xl);
+  animation: drawerSlideLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes drawerSlideLeft {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mobile-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 0.75rem;
+}
+
+.mobile-drawer-actions {
+  margin: 0.75rem 0;
+}
+
+.mobile-sn-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   پنجره هشدار تمام‌صفحه با بلور عمیق (Blur Alert Modal)
+   ========================================================================== */
+.note-alert-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  animation: alertFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes alertFadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.note-alert-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 440px;
+  padding: 1.5rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.alert-pulse-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-color: var(--amber-subtle);
+  color: var(--amber);
+  border: 2px solid var(--amber-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.8rem;
+  animation: pulseAlarm 1.4s infinite;
+}
+.alert-pulse-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+@keyframes pulseAlarm {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  70% { transform: scale(1.08); box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.note-alert-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--amber);
+  background: var(--amber-subtle);
+  border: 1px solid var(--amber-border);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 0.4rem;
+}
+
+.note-alert-author {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 0.6rem;
+}
+
+.note-alert-box {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.9rem;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--text-body);
+  width: 100%;
+  margin-bottom: 0.8rem;
+  text-align: right;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.note-alert-time-tag {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.35rem;
+}
+.note-alert-time-tag strong {
+  color: var(--primary);
+}
+
+.note-alert-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.snooze-buttons-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* ==========================================================================
+   دکمه شناور موبایل (Mobile FAB)
+   ========================================================================== */
 .mobile-fab {
   display: none;
   position: fixed;
@@ -1330,7 +1904,6 @@ body {
 }
 .btn-undo-link:hover { color: var(--rose-hover); }
 
-/* افکت نورانی فیلدهای پر شده خودکار */
 @keyframes glowField {
   0% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4); border-color: var(--emerald); }
   100% { box-shadow: none; border-color: var(--border); }
@@ -1533,6 +2106,7 @@ body {
 .hidden { display: none !important; }
 .text-center { text-align: center; }
 .w-12 { width: 3rem; }
+
 .svg-icon {
   width: 16px;
   height: 16px;
