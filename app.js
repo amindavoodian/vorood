@@ -1,6 +1,7 @@
 /**
  * app.js
- * کنترلر اصلی، مدیریت رویدادها، جدول ترددها و اتصال ماژول‌های سامانه
+ * کنترلر اصلی سامانه، مدیریت رویدادها، جدول ترددها و اتصال ماژول‌های سامانه
+ * با تجربه کاربری روان، تعاملات سریع و طراحی تمیز
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const usersListContainer = document.getElementById('users-list-container');
   const userFormTitle = document.getElementById('user-form-title');
 
+  // وضعیت اولیه فیلتر در موبایل
   if (window.innerWidth <= 820 && mainFilterPanel) {
     mainFilterPanel.classList.add('is-collapsed');
   }
@@ -145,22 +147,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     filterToggleArrow?.classList.toggle('is-open', isCurrentlyCollapsed);
   });
 
+  // بستن آسان مودال با کلیک خارج از کادر (Backdrop Dismiss)
+  document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) {
+        // اگر مودال ورود اجباری نیست، بسته شود
+        if (backdrop === modalLogin && btnCancelLogin?.classList.contains('hidden')) {
+          return;
+        }
+        if (backdrop === modalSetupAdmin) return;
+        backdrop.classList.add('hidden');
+      }
+    });
+  });
+
+  // کلید میانبر کیبورد Escape و Search Focus
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+      openModals.forEach(m => {
+        if (m === modalSetupAdmin) return;
+        if (m === modalLogin && btnCancelLogin?.classList.contains('hidden')) return;
+        m.classList.add('hidden');
+      });
+    } else if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      inputSearch?.focus();
+    }
+  });
+
   function showToast(type, text) {
     const container = document.getElementById('toast-container');
     if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type === 'success' ? 'toast-success' : (type === 'info' ? 'toast-info' : 'toast-error')}`;
-    toast.innerHTML = type === 'success' 
-      ? `<svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> <span>${text}</span>`
-      : `<svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> <span>${text}</span>`;
+    
+    let iconSvg = '';
+    if (type === 'success') {
+      iconSvg = '<svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+    } else if (type === 'info') {
+      iconSvg = '<svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    } else {
+      iconSvg = '<svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+    }
+
+    toast.innerHTML = `${iconSvg}<span>${text}</span>`;
     container.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.25s ease';
+      setTimeout(() => toast.remove(), 250);
+    }, 3800);
   }
 
   function updateDbIndicator() {
     if (DB.isCloudConfigured()) {
       dbStatusIndicator.className = 'db-status-badge is-online';
-      dbStatusText.textContent = 'دیتابیس ابری';
+      dbStatusText.textContent = 'دیتابیس ابری (همگام)';
     } else {
       dbStatusIndicator.className = 'db-status-badge is-local';
       dbStatusText.textContent = 'دیتابیس محلی';
@@ -269,7 +313,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateUserHeader();
       await populateGuardsFilterDropdown();
       await loadData();
-      showToast('success', `حساب مدیر ارشد (${admin.name}) با موفقیت ایجاد شد.`);
+      showToast('success', `حساب کاربری مدیر ارشد (${admin.name}) با موفقیت ایجاد شد.`);
     } catch (err) {
       setupErrorMsg.textContent = err.message;
       setupErrorMsg.classList.remove('hidden');
@@ -408,7 +452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function populateGuardsFilterDropdown() {
     const users = await DB.getUsers();
-    selectFilterGuard.innerHTML = '<option value="ALL">همه ماموران (ورود یا خروج)</option>' + 
+    selectFilterGuard.innerHTML = '<option value="ALL">همه مأموران (ورود یا خروج)</option>' + 
       users.map(u => `<option value="${u.name}">${u.name} (${u.role === 'ADMIN' ? 'مدیر' : u.shiftName})</option>`).join('');
   }
 
@@ -545,7 +589,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isActive = r.status === 'ACTIVE';
       const isPedestrian = r.traffic_type === 'PEDESTRIAN';
 
-      const entryOfficerName = r.entry_guard_name || r.guard_name || 'مامور کشیک';
+      const entryOfficerName = r.entry_guard_name || r.guard_name || 'مأمور کشیک';
       const entryOfficerShift = r.entry_guard_shift || r.guard_shift || '';
       const exitOfficerName = r.exit_guard_name || null;
       const exitOfficerShift = r.exit_guard_shift || '';
@@ -555,8 +599,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         : PlateUtils.renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
 
       const statusBadgeHtml = isActive 
-        ? '<span class="badge-status badge-active">حاضر در پردیس</span>' 
-        : '<span class="badge-status badge-exited">خارج شده</span>';
+        ? '<span class="badge-status badge-active"><svg class="svg-icon" style="width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg> حاضر در پردیس</span>' 
+        : '<span class="badge-status badge-exited"><svg class="svg-icon" style="width:10px; height:10px;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> خارج شده</span>';
 
       const actionsHtml = `
         <div class="action-group">
@@ -582,7 +626,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         tr.innerHTML = `
           <td>
             <div class="mc-card">
-              <!-- ردیف هدر کارت: شماره، نوع شخص و وضعیت حضور -->
               <div class="mc-header">
                 <div class="mc-header-right">
                   <span class="mc-index">#${Jalali.toPersianDigits(idx + 1)}</span>
@@ -591,7 +634,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div>${statusBadgeHtml}</div>
               </div>
 
-              <!-- ردیف نام و مشخصه پلاک -->
               <div class="mc-body">
                 <div class="mc-person">
                   <span class="mc-name">${r.person_name}</span>
@@ -605,26 +647,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div>${plateOrPedestrianHtml}</div>
               </div>
 
-              <!-- شبکه منظم زمان ورود و خروج -->
               <div class="mc-info-grid">
                 <div class="mc-info-item">
                   <span class="mc-info-label">زمان ورود:</span>
-                  <span class="mc-info-val">${Jalali.toPersianDigits(r.entry_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.entry_jalali_date)})</small></span>
+                  <span class="mc-info-val">${Jalali.toPersianDigits(r.entry_time_display)} <small style="font-weight:500; color:var(--text-faint);">(${Jalali.toPersianDigits(r.entry_jalali_date)})</small></span>
                 </div>
                 <div class="mc-info-item">
                   <span class="mc-info-label">زمان خروج:</span>
-                  <span class="mc-info-val">${r.exit_time_display ? `${Jalali.toPersianDigits(r.exit_time_display)} <small style="font-weight:normal; color:var(--text-muted);">(${Jalali.toPersianDigits(r.exit_jalali_date)})</small>` : '-- : --'}</span>
+                  <span class="mc-info-val">${r.exit_time_display ? `${Jalali.toPersianDigits(r.exit_time_display)} <small style="font-weight:500; color:var(--text-faint);">(${Jalali.toPersianDigits(r.exit_jalali_date)})</small>` : 'در حال حضور'}</span>
                 </div>
               </div>
 
-              <!-- اطلاعات مأموران ثبت‌کننده -->
               <div class="mc-officers-grid">
                 <div>
-                  <span class="mc-officer-title">مأمور ورود:</span>
+                  <span class="mc-officer-title">ثبت ورود:</span>
                   <div class="mc-officer-name-in">${entryOfficerName}</div>
                 </div>
                 <div>
-                  <span class="mc-officer-title">مأمور خروج:</span>
+                  <span class="mc-officer-title">ثبت خروج:</span>
                   <div class="mc-officer-name-out">${exitOfficerName || '—'}</div>
                 </div>
               </div>
@@ -635,7 +675,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
               ` : ''}
 
-              <!-- فوتر کارت و دکمه‌های عملیات -->
               <div class="mc-footer">
                 <span class="mc-shift-tag">${entryOfficerShift ? `${entryOfficerShift}` : ''}</span>
                 ${actionsHtml}
@@ -645,31 +684,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
       } else {
         const vehicleInfoHtml = isPedestrian
-          ? '<span style="color:var(--text-muted); font-size:0.72rem;">بدون وسیله</span>'
+          ? '<span style="color:var(--text-faint); font-size:0.75rem;">عابر پیاده</span>'
           : `
             <div>
               <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
-              ${r.vehicle_model ? `<div class="badge-veh-model">${r.vehicle_model}</div>` : ''}
+              ${r.vehicle_model ? `<div class="badge-veh-model" style="margin-top:2px;">${r.vehicle_model}</div>` : ''}
             </div>
           `;
 
         tr.innerHTML = `
-          <td class="text-center" style="color:var(--text-muted); font-size:0.75rem;">${Jalali.toPersianDigits(idx + 1)}</td>
+          <td class="text-center" style="color:var(--text-faint); font-weight:700; font-size:0.75rem;">${Jalali.toPersianDigits(idx + 1)}</td>
           <td>${PlateUtils.renderPersonCategoryBadge(r.person_category)}</td>
           <td>${plateOrPedestrianHtml}</td>
-          <td style="font-weight:700;">${r.person_name}</td>
+          <td style="font-weight:700; color:var(--text-main);">${r.person_name}</td>
           <td>${vehicleInfoHtml}</td>
           <td>
-            <div style="font-weight:600;">${Jalali.toPersianDigits(r.entry_time_display)}</div>
+            <div style="font-weight:700;">${Jalali.toPersianDigits(r.entry_time_display)}</div>
             <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.entry_jalali_date)}</div>
           </td>
           <td>
             ${r.exit_time_display ? `
-              <div style="font-weight:600;">${Jalali.toPersianDigits(r.exit_time_display)}</div>
+              <div style="font-weight:700; color:var(--emerald);">${Jalali.toPersianDigits(r.exit_time_display)}</div>
               <div style="font-size:0.7rem; color:var(--text-muted);">${Jalali.toPersianDigits(r.exit_jalali_date)}</div>
-            ` : '<span style="color:var(--text-muted); font-size:0.75rem;">-- : --</span>'}
+            ` : '<span style="color:var(--text-faint); font-size:0.76rem;">—</span>'}
           </td>
-          <td style="color:var(--text-muted); font-size:0.74rem; max-width:160px;">${r.notes || '—'}</td>
+          <td style="color:var(--text-body); font-size:0.76rem; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.notes || ''}">${r.notes || '—'}</td>
           <td>
             <div class="officer-badge-entry">
               <span class="officer-name">${entryOfficerName}</span>
@@ -682,7 +721,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="officer-name">${exitOfficerName}</span>
                 <span class="officer-shift">${exitOfficerShift}</span>
               </div>
-            ` : '<span style="color:var(--text-muted); font-size:0.72rem;">—</span>'}
+            ` : '<span style="color:var(--text-faint); font-size:0.75rem;">—</span>'}
           </td>
           <td>${statusBadgeHtml}</td>
           <td class="text-center">${actionsHtml}</td>
@@ -758,7 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     PlateUtils.updatePlateTheme(searchPlateContainer, 'ب');
 
     loadData();
-    showToast('info', 'فیلترهای جستجو ریست شدند.');
+    showToast('info', 'تمامی فیلترهای جستجو ریست شدند.');
   });
 
   btnExportCsv?.addEventListener('click', () => {
@@ -769,7 +808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       const result = ExportUtils.exportRecordsToCsv(currentFilteredRecords);
-      showToast('success', `گزارش اکسل (${Jalali.toPersianDigits(result.count)} تردد فیلترشده) دانلود شد.`);
+      showToast('success', `گزارش اکسل (${Jalali.toPersianDigits(result.count)} رکورد) دانلود شد.`);
     } catch (err) {
       showToast('error', err.message);
     }
@@ -829,7 +868,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (entryTrafficType === 'VEHICLE') {
       if (p1Val.length !== 2 || p2Val.length !== 3 || cityVal.length !== 2) {
-        err.textContent = 'لطفاً ارقام پلاک خودرو را به‌طور کامل وارد فرمایید.';
+        err.textContent = 'لطفاً تمامی ارقام پلاک خودرو را به‌طور کامل وارد فرمایید.';
         err.classList.remove('hidden');
         return;
       }
@@ -890,8 +929,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.getElementById('exit-entry-time-info').textContent = `${Jalali.toPersianDigits(record.entry_jalali_date)} - ساعت ${Jalali.toPersianDigits(record.entry_time_display)}`;
-    document.getElementById('exit-entry-guard-info').textContent = `${record.entry_guard_name || record.guard_name || 'مامور کشیک'}`;
-    document.getElementById('exit-active-guard-info').textContent = `${currentUser?.name} (${currentUser?.shiftName || 'مامور جاری'})`;
+    document.getElementById('exit-entry-guard-info').textContent = `${record.entry_guard_name || record.guard_name || 'مأمور کشیک'}`;
+    document.getElementById('exit-active-guard-info').textContent = `${currentUser?.name} (${currentUser?.shiftName || 'مأمور جاری'})`;
 
     document.getElementById('input-exit-date').value = Jalali.formatJalaliDate(now);
     document.getElementById('input-exit-time').value = Jalali.formatTime(now);
@@ -919,7 +958,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       modalExit.classList.add('hidden');
-      showToast('success', `خروج توسط مامور (${DB.getCurrentUser()?.name}) با موفقیت ثبت شد.`);
+      showToast('success', `خروج توسط مأمور (${DB.getCurrentUser()?.name}) با موفقیت ثبت شد.`);
       await loadData();
     } catch (ex) {
       showToast('error', ex.message);
@@ -1091,12 +1130,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="user-perms-badges">
               <span class="perm-tag ${p.read ? 'perm-tag-on' : 'perm-tag-off'}">خواندن</span>
               <span class="perm-tag ${p.create ? 'perm-tag-on' : 'perm-tag-off'}">ثبت ورود</span>
-              <span class="perm-tag ${p.update ? 'perm-tag-on' : 'perm-tag-off'}">ثبت خروج/ویرایش</span>
+              <span class="perm-tag ${p.update ? 'perm-tag-on' : 'perm-tag-off'}">خروج/ویرایش</span>
               <span class="perm-tag ${p.delete ? 'perm-tag-on' : 'perm-tag-off'}">حذف</span>
             </div>
           </div>
           <div class="action-group">
-            <button type="button" class="btn-action-icon edit-btn" data-edit-user="${u.id}" title="ویرایش کاربر و دسترسی‌ها">
+            <button type="button" class="btn-action-icon edit-btn" data-edit-user="${u.id}" title="ویرایش کاربر">
               <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             </button>
             ${u.id !== DB.getCurrentUser()?.id ? `
@@ -1137,12 +1176,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     usersListContainer.querySelectorAll('[data-delete-user]').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const uid = e.currentTarget.getAttribute('data-delete-user');
-        if (confirm('آیا از حذف این کاربر/نگهبان اطمینان دارید؟')) {
+        if (confirm('آیا از حذف این کاربر اطمینان دارید؟')) {
           try {
             await DB.deleteUser(uid);
             await populateUsersList();
             await populateGuardsFilterDropdown();
-            showToast('success', 'کاربر حذف شد.');
+            showToast('success', 'کاربر با موفقیت حذف شد.');
           } catch (err) {
             showToast('error', err.message);
           }
@@ -1187,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await populateUsersList();
       await populateGuardsFilterDropdown();
       updateUserHeader();
-      showToast('success', 'مشخصات کاربر و دسترسی‌ها ذخیره شد.');
+      showToast('success', 'مشخصات کاربر با موفقیت ذخیره شد.');
     } catch (err) {
       showToast('error', err.message);
     }
@@ -1210,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const container = document.getElementById('profiles-list-container');
     if (list.length === 0) {
-      container.innerHTML = '<div style="font-size:0.75rem; color:var(--text-muted); padding:0.5rem;">حافظه خالی است.</div>';
+      container.innerHTML = '<div style="font-size:0.75rem; color:var(--text-muted); padding:0.8rem; text-align:center;">بانک مراجعین خالی است.</div>';
       return;
     }
 
@@ -1226,16 +1265,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('btn-clear-profiles')?.addEventListener('click', () => {
-    DB.saveLocalProfiles({});
-    renderProfilesTab();
-    updateKnownNamesDatalist();
-    showToast('info', 'حافظه مراجعین پاکسازی شد.');
+    if (confirm('آیا از پاکسازی کل حافظه مراجعین اطمینان دارید؟')) {
+      DB.saveLocalProfiles({});
+      renderProfilesTab();
+      updateKnownNamesDatalist();
+      showToast('info', 'حافظه مراجعین پاکسازی شد.');
+    }
   });
 
   btnOpenSettings?.addEventListener('click', async () => {
     const currentUser = DB.getCurrentUser();
     if (!currentUser || currentUser.role !== 'ADMIN') {
-      showToast('error', 'تنها مدیر ارشد سامانه به این بخش دسترسی دارد.');
+      showToast('error', 'تنها مدیر ارشد سامانه به بخش تنظیمات دسترسی دارد.');
       return;
     }
 
@@ -1270,12 +1311,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const resultBox = document.getElementById('db-connection-result');
 
     if (!url || !token) {
-      resultBox.textContent = 'لطفاً آدرس دیتابیس و توکن را وارد کنید.';
+      resultBox.textContent = 'لطفاً آدرس دیتابیس و توکن احراز هویت را وارد فرمایید.';
       resultBox.classList.remove('hidden');
       return;
     }
 
-    resultBox.textContent = 'در حال تست ارتباط و ایجاد جداول ابری...';
+    resultBox.textContent = 'در حال تست ارتباط و ایجاد ساختار جداول ابری...';
     resultBox.className = 'form-error';
     resultBox.style.color = 'var(--primary)';
     resultBox.style.borderColor = 'var(--primary)';
@@ -1286,11 +1327,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await DB.initCloudTables();
       await DB.syncProfiles();
-      resultBox.textContent = '✓ اتصال با موفقیت برقرار شد و جداول همگام شدند.';
+      resultBox.textContent = '✓ ارتباط با سرور ابری با موفقیت تأیید و جداول همگام شدند.';
       resultBox.style.color = 'var(--emerald)';
       resultBox.style.borderColor = 'var(--emerald)';
       updateDbIndicator();
-      showToast('success', 'اتصال به دیتابیس ابری فعال گردید.');
+      showToast('success', 'اتصال به پایگاه داده ابری فعال گردید.');
       await populateUsersList();
       await populateGuardsFilterDropdown();
       await loadData();
@@ -1298,8 +1339,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       DB.clearTursoConfig();
       updateDbIndicator();
       resultBox.textContent = 'خطا در برقراری ارتباط: ' + ex.message;
-      resultBox.style.color = 'var(--red)';
-      resultBox.style.borderColor = 'var(--red)';
+      resultBox.style.color = 'var(--rose)';
+      resultBox.style.borderColor = 'var(--rose)';
     }
   });
 
@@ -1309,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('input-auth-token').value = '';
     document.getElementById('db-connection-result')?.classList.add('hidden');
     updateDbIndicator();
-    showToast('info', 'اتصال ابری قطع گردید.');
+    showToast('info', 'ارتباط ابری قطع شد و به حافظه محلی بازگشتید.');
     loadData();
   });
 
@@ -1326,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    showToast('success', 'فایل پشتیبان با موفقیت دانلود شد.');
+    showToast('success', 'فایل پشتیبان کامل سیستم دانلود شد.');
   });
 
   // راه‌اندازی اولیه سامانه
@@ -1357,3 +1398,155 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 });
+```
+
+---
+
+### ۴. فایل کامل `plate-utils.js`
+
+```javascript
+/**
+ * plate-utils.js
+ * ماژول کمکی مدیریت، اعتبارسنجی، تم‌های رنگی و بج‌های پلاک ملی و دسته‌بندی مراجعین
+ */
+
+(function () {
+  const PlateUtils = {
+    /**
+     * تعیین کلاس تم رنگی پلاک بر اساس حرف
+     */
+    getPlateThemeClass(letter) {
+      switch (letter) {
+        case 'ت':
+        case 'ع':
+        case 'ک':
+          return 'plate-theme-yellow'; // زرد: تاکسی، عمومی و کشاورزی
+        case 'پ':
+        case 'ث':
+        case 'ز':
+        case 'ف':
+          return 'plate-theme-green';  // سبز: پلیس، سپاه، وزارت دفاع و ستاد کل
+        case 'الف':
+        case 'تشریفات':
+          return 'plate-theme-red';    // قرمز: دولتی و تشریفات
+        case 'ش':
+          return 'plate-theme-navy';   // سرمه‌ای: ارتش
+        case 'D':
+        case 'S':
+          return 'plate-theme-lightblue'; // آبی روشن: دیپلماتیک و سفارت
+        default:
+          return 'plate-theme-white';  // سفید: شخصی و سایر
+      }
+    },
+
+    /**
+     * به‌روزرسانی آنی کلاس تم روی کانتینر ورودی پلاک
+     */
+    updatePlateTheme(containerEl, letter) {
+      if (!containerEl) return;
+      const themeClass = this.getPlateThemeClass(letter);
+      const isSearch = containerEl.classList.contains('is-search');
+      containerEl.className = `iran-plate-input ${isSearch ? 'is-search ' : ''}${themeClass}`;
+    },
+
+    /**
+     * رندر HTML بج پلاک ملی با پس‌زمینه هماهنگ و استاندارد
+     */
+    renderPlateBadge(p1Val, ltrVal, p2Val, cityVal) {
+      if (!p1Val && !p2Val) {
+        return '<span style="color:var(--text-faint); font-size:0.75rem;">—</span>';
+      }
+
+      const letter = ltrVal || 'ب';
+      const themeClass = this.getPlateThemeClass(letter);
+      const ltrDisplay = letter === 'معلولین' ? '♿' : letter;
+      const part1 = window.Jalali ? Jalali.toPersianDigits(p1Val || '') : (p1Val || '');
+      const part2 = window.Jalali ? Jalali.toPersianDigits(p2Val || '') : (p2Val || '');
+      const city = window.Jalali ? Jalali.toPersianDigits(cityVal || '') : (cityVal || '');
+
+      return `
+        <div class="iran-plate-badge ${themeClass}" title="${part1} ${letter} ${part2} ایران ${city}">
+          <div class="plate-blue-strip">
+            <div class="iran-flag-icon">
+              <span class="flag-green"></span>
+              <span class="flag-white"></span>
+              <span class="flag-red"></span>
+            </div>
+            <span class="plate-country-code">I.R.</span>
+          </div>
+          <div class="plate-nums-box">
+            <span>${part1}</span>
+            <span class="plate-letter-tag">${ltrDisplay}</span>
+            <span>${part2}</span>
+          </div>
+          <div class="plate-city-box">
+            <span class="plate-iran-tag">ایران</span>
+            <span>${city}</span>
+          </div>
+        </div>
+      `;
+    },
+
+    /**
+     * تولید رشته متن تمیز و کامل پلاک جهت ذخیره‌سازی یا خروجی گزارش
+     */
+    formatPlateFull(p1, ltr, p2, city) {
+      if (!p1 || !p2 || !city) return '';
+      return `${p1} ${ltr} ${p2} ایران ${city}`;
+    },
+
+    /**
+     * رندر بج دسته‌بندی مراجعین
+     */
+    renderPersonCategoryBadge(category) {
+      switch (category) {
+        case 'STAFF':
+          return '<span class="badge-person badge-person-staff">کارمند / پرسنل</span>';
+        case 'FACULTY':
+          return '<span class="badge-person badge-person-faculty">هیئت علمی</span>';
+        case 'STUDENT':
+          return '<span class="badge-person badge-person-student">دانشجو</span>';
+        case 'CONTRACTOR':
+          return '<span class="badge-person badge-person-contractor">پیمانکار</span>';
+        case 'GUEST':
+        default:
+          return '<span class="badge-person badge-person-guest">ارباب‌رجوع</span>';
+      }
+    },
+
+    /**
+     * برگرداندن نام فارسی دسته مراجع
+     */
+    getPersonCategoryLabel(category) {
+      switch (category) {
+        case 'STAFF': return 'کارمند / پرسنل';
+        case 'FACULTY': return 'استاد / هیئت علمی';
+        case 'STUDENT': return 'دانشجو';
+        case 'CONTRACTOR': return 'پیمانکار / خدمات';
+        case 'GUEST': default: return 'ارباب‌رجوع / مهمان';
+      }
+    },
+
+    /**
+     * تنظیم خودکار تبدیل ارقام به فارسی و پرش هوشمند به فیلد بعدی
+     */
+    setupPlateInputAutoConvert(inputEl, maxLen, nextEl, autoFillCallback) {
+      if (!inputEl) return;
+      inputEl.addEventListener('input', (e) => {
+        if (window.Jalali && Jalali.cleanToPersianDigits) {
+          e.target.value = Jalali.cleanToPersianDigits(e.target.value, maxLen);
+        } else {
+          e.target.value = e.target.value.replace(/[^\d]/g, '').slice(0, maxLen);
+        }
+        if (e.target.value.length === maxLen && nextEl) {
+          nextEl.focus();
+        }
+        if (typeof autoFillCallback === 'function') {
+          autoFillCallback();
+        }
+      });
+    }
+  };
+
+  window.PlateUtils = PlateUtils;
+})();
