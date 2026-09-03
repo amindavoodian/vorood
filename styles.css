@@ -71,9 +71,6 @@
   --safe-top: env(safe-area-inset-top, 0px);
 }
 
-/* ==========================================================================
-   پایه‌ریزی و ریست مدرن
-   ========================================================================== */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -102,39 +99,31 @@ body {
   }
 }
 
-/* اسکرول‌بار شیک و ظریف */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: var(--radius-pill);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ==========================================================================
-   هدر اصلی برنامه (Minimal Frosted Glass)
+   هدر اصلی برنامه
    ========================================================================== */
 .app-header {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
-  padding: 0.55rem 1rem;
+  padding: 0.5rem 1rem;
   position: sticky;
   top: 0;
   z-index: 40;
-  transition: border-color 0.2s;
+  height: 56px;
+  display: flex;
+  align-items: center;
 }
 
 .header-container {
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
@@ -145,36 +134,16 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   text-decoration: none;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
-.brand-icon {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-}
-
-.brand-title {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: var(--text-main);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
-}
-
-.brand-subtitle {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  font-weight: 500;
+.brand-mosque-logo {
+  height: 38px;
+  max-height: 38px;
+  width: auto;
+  display: block;
+  object-fit: contain;
 }
 
 .header-actions {
@@ -184,7 +153,6 @@ body {
   flex-shrink: 0;
 }
 
-/* نشانگر وضعیت دیتابیس با انیمیشن ملایم */
 .db-status-badge {
   display: inline-flex;
   align-items: center;
@@ -197,7 +165,6 @@ body {
   background: var(--bg-surface);
   white-space: nowrap;
   box-shadow: var(--shadow-xs);
-  transition: all 0.2s ease;
 }
 
 .db-status-badge.is-online {
@@ -217,7 +184,6 @@ body {
   height: 7px;
   border-radius: 50%;
   display: inline-block;
-  position: relative;
 }
 .is-online .status-dot {
   background-color: var(--emerald);
@@ -233,7 +199,6 @@ body {
   .db-status-badge { padding: 0.4rem; }
 }
 
-/* ویجت کاربر فعال */
 .active-user-badge-container {
   display: flex;
   align-items: center;
@@ -243,14 +208,7 @@ body {
   border-radius: var(--radius-pill);
   padding: 0.25rem 0.65rem;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-xs);
-}
-
-.active-user-badge-container:hover {
-  background: var(--bg-subtle);
-  border-color: var(--border-hover);
-  transform: translateY(-1px);
 }
 
 .user-meta-header {
@@ -297,7 +255,7 @@ body {
 }
 
 /* ==========================================================================
-   سیستم دکمه‌ها (Clean, Modern, Accessible)
+   دکمه‌ها و عناصر بصری
    ========================================================================== */
 .btn {
   display: inline-flex;
@@ -334,7 +292,6 @@ body {
 .btn-secondary:hover {
   background-color: var(--bg-subtle);
   border-color: var(--border-hover);
-  color: var(--text-main);
 }
 
 .icon-btn-mobile {
@@ -357,11 +314,6 @@ body {
   align-items: center;
   gap: 0.25rem;
   min-height: 32px;
-  transition: all 0.15s ease;
-}
-.btn-secondary-sm:hover {
-  background-color: var(--bg-subtle);
-  border-color: var(--border-hover);
 }
 
 .btn-emerald { background-color: var(--emerald); color: #ffffff; }
@@ -372,9 +324,7 @@ body {
   color: var(--emerald);
   border-color: var(--emerald-border);
 }
-.btn-csv:hover {
-  background-color: #d1fae5;
-}
+.btn-csv:hover { background-color: #d1fae5; }
 
 .btn-danger { background-color: var(--rose); color: #ffffff; }
 .btn-danger:hover { background-color: var(--rose-hover); }
@@ -392,7 +342,6 @@ body {
 
 .btn-full-width { width: 100%; }
 
-/* دکمه‌های عملیات سطرهای جدول */
 .action-group {
   display: inline-flex;
   align-items: center;
@@ -413,20 +362,13 @@ body {
   cursor: pointer;
   transition: all 0.15s ease;
 }
-.btn-action-icon:hover {
-  transform: translateY(-1px);
-}
-.btn-action-icon:active { transform: scale(0.92); }
 
 .btn-action-icon.exit-btn {
   color: var(--emerald);
   border-color: var(--emerald-border);
   background-color: var(--emerald-subtle);
 }
-.btn-action-icon.exit-btn:hover {
-  background-color: var(--emerald);
-  color: #ffffff;
-}
+.btn-action-icon.exit-btn:hover { background-color: var(--emerald); color: #ffffff; }
 
 .btn-action-icon.edit-btn:hover {
   color: var(--primary);
@@ -440,8 +382,18 @@ body {
   background-color: var(--rose-subtle);
 }
 
+/* تصویر عابر پیاده و آیکون‌های SVG عکسی */
+.svg-icon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
 /* ==========================================================================
-   محتوای اصلی و گرید کارت‌های آمار (Minimal Metrics)
+   محتوای اصلی و کارت‌های آمار
    ========================================================================== */
 .main-content {
   max-width: 1440px;
@@ -463,7 +415,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: var(--shadow-xs);
 }
 
 .stats-grid {
@@ -490,13 +441,6 @@ body {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-xs);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-.stat-card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
 }
 
 .stat-info { min-width: 0; }
@@ -507,8 +451,6 @@ body {
   margin-bottom: 0.2rem;
   font-weight: 600;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .stat-value-group {
   display: flex;
@@ -520,7 +462,6 @@ body {
   font-weight: 800;
   color: var(--text-main);
   line-height: 1;
-  letter-spacing: -0.02em;
 }
 .stat-unit {
   font-size: 0.65rem;
@@ -544,7 +485,7 @@ body {
 .stat-card-emerald .stat-icon-wrapper { background: var(--emerald-subtle); color: var(--emerald); }
 
 /* ==========================================================================
-   پنل فیلترها و جستجو (Streamlined Toolbar)
+   پنل فیلترها و جستجو
    ========================================================================== */
 .mobile-filter-toggle-container {
   display: block;
@@ -562,9 +503,7 @@ body {
   padding: 0.55rem 0.85rem;
 }
 
-.filter-arrow {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.filter-arrow { transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
 .filter-arrow.is-open { transform: rotate(180deg); }
 
 .filter-panel {
@@ -577,7 +516,6 @@ body {
   flex-direction: column;
   gap: 0.75rem;
   box-shadow: var(--shadow-xs);
-  transition: all 0.2s ease;
 }
 
 @media (max-width: 820px) {
@@ -626,7 +564,6 @@ body {
   font-weight: 700;
   padding: 0 0.4rem;
   white-space: nowrap;
-  color: var(--text-main);
 }
 .custom-date-input { width: 115px !important; font-size: 0.76rem; }
 
@@ -658,10 +595,7 @@ body {
   color: var(--text-muted);
 }
 
-.search-box {
-  position: relative;
-  width: 100%;
-}
+.search-box { position: relative; width: 100%; }
 
 .search-box input,
 .form-control,
@@ -675,7 +609,7 @@ body {
   font-size: 0.8rem;
   outline: none;
   min-height: 38px;
-  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .search-box input:focus,
@@ -701,13 +635,10 @@ body {
   text-align: center;
   padding: 0.35rem 0.2rem !important;
 }
-.range-separator {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-}
+.range-separator { font-size: 0.72rem; color: var(--text-muted); }
 
 /* ==========================================================================
-   پلاک خودرو ملی استاندارد ایران (Hyper-Realistic & Sharp)
+   پلاک خودرو ملی استاندارد ایران
    ========================================================================== */
 .plate-wrapper {
   display: flex;
@@ -716,7 +647,6 @@ body {
   width: 100%;
 }
 
-/* ورودی پلاک */
 .iran-plate-input {
   display: inline-flex;
   align-items: stretch;
@@ -755,7 +685,6 @@ body {
   flex-direction: column;
   border-radius: 1px;
   overflow: hidden;
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.4);
 }
 .flag-green { background: #15803d; flex: 1; }
 .flag-white { background: #ffffff; flex: 1; }
@@ -794,9 +723,6 @@ body {
   color: inherit;
   border-radius: 2px;
 }
-.plate-letter-box:focus {
-  background-color: rgba(0, 0, 0, 0.05);
-}
 
 .plate-city-box {
   display: flex;
@@ -822,7 +748,6 @@ body {
 .plate-theme-navy { background-color: #1e3a8a; color: #ffffff; border-color: #0f172a; }
 .plate-theme-lightblue { background-color: #0284c7; color: #ffffff; border-color: #0c4a6e; }
 
-/* نشان پلاک داخل جدول و کارت‌ها */
 .iran-plate-badge {
   display: inline-flex;
   align-items: stretch;
@@ -860,19 +785,19 @@ body {
 .iran-plate-badge .plate-iran-tag { font-size: 5px; }
 
 /* ==========================================================================
-   بج‌های دسته‌بندی و وضعیت
+   بج‌ها
    ========================================================================== */
 .badge-pedestrian {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
   background-color: var(--bg-subtle);
   border: 1px solid var(--border);
   padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
   font-size: 0.68rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-body);
 }
 
 .badge-person {
@@ -915,24 +840,12 @@ body {
 .badge-active { background: var(--amber-subtle); color: var(--amber); border: 1px solid var(--amber-border); }
 .badge-exited { background: var(--emerald-subtle); color: var(--emerald); border: 1px solid var(--emerald-border); }
 
-/* پلاک ماموران */
-.officer-badge-entry, .officer-badge-exit {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.officer-name {
-  font-weight: 700;
-  font-size: 0.74rem;
-  color: var(--text-main);
-}
-.officer-shift {
-  font-size: 0.64rem;
-  color: var(--text-faint);
-}
+.officer-badge-entry, .officer-badge-exit { display: flex; flex-direction: column; line-height: 1.2; }
+.officer-name { font-weight: 700; font-size: 0.74rem; color: var(--text-main); }
+.officer-shift { font-size: 0.64rem; color: var(--text-faint); }
 
 /* ==========================================================================
-   جدول ترددها (Desktop Table & Modern Mobile Cards)
+   جدول و کارت‌های موبایل
    ========================================================================== */
 .table-container {
   background-color: var(--bg-surface);
@@ -967,14 +880,10 @@ body {
   border-bottom: 1px solid var(--border-light);
   color: var(--text-main);
   vertical-align: middle;
-  transition: background-color 0.15s ease;
 }
 
-.data-table tbody tr:hover td {
-  background-color: #f8fafc;
-}
+.data-table tbody tr:hover td { background-color: #f8fafc; }
 
-/* کارت‌های واکنش‌گرا در موبایل */
 @media (max-width: 820px) {
   .table-container {
     background: transparent;
@@ -983,18 +892,12 @@ body {
     overflow-x: visible;
   }
 
-  .data-table, 
-  .data-table tbody, 
-  .data-table tr, 
-  .data-table td {
+  .data-table, .data-table tbody, .data-table tr, .data-table td {
     display: block;
     width: 100%;
-    box-sizing: border-box;
   }
 
-  .data-table thead {
-    display: none;
-  }
+  .data-table thead { display: none; }
 
   .data-table tbody tr {
     background: var(--bg-surface);
@@ -1003,146 +906,31 @@ body {
     margin-bottom: 0.75rem;
     padding: 0.85rem;
     box-shadow: var(--shadow-xs);
-    transition: transform 0.15s, border-color 0.15s;
   }
 
-  .data-table tbody tr:active {
-    border-color: var(--border-hover);
-  }
+  .data-table td { padding: 0; border-bottom: none; }
 
-  .data-table td {
-    padding: 0;
-    border-bottom: none;
-  }
-
-  /* معماری داخلی کارت موبایل */
-  .mc-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    text-align: right;
-  }
-
-  .mc-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--border-light);
-    padding-bottom: 0.45rem;
-  }
-
-  .mc-header-right {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  .mc-index {
-    font-size: 0.74rem;
-    font-weight: 800;
-    color: var(--text-faint);
-  }
-
-  .mc-body {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.6rem;
-    margin: 0.1rem 0;
-  }
-
-  .mc-person {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  .mc-name {
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: var(--text-main);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mc-vehicle-tags {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  /* گرید زمان‌بندی تردد */
-  .mc-info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.45rem;
-    background: var(--bg-subtle);
-    border-radius: var(--radius-md);
-    padding: 0.55rem 0.7rem;
-  }
-
-  .mc-info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  .mc-info-label {
-    font-size: 0.65rem;
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-
-  .mc-info-val {
-    font-size: 0.76rem;
-    font-weight: 700;
-    color: var(--text-main);
-  }
-
-  .mc-officers-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.45rem;
-    font-size: 0.7rem;
-    border-top: 1px dashed var(--border);
-    border-bottom: 1px dashed var(--border);
-    padding: 0.45rem 0;
-  }
-
-  .mc-officer-title {
-    font-size: 0.64rem;
-    color: var(--text-muted);
-  }
-
+  .mc-card { display: flex; flex-direction: column; gap: 0.55rem; text-align: right; }
+  .mc-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 0.45rem; }
+  .mc-header-right { display: flex; align-items: center; gap: 0.45rem; }
+  .mc-index { font-size: 0.74rem; font-weight: 800; color: var(--text-faint); }
+  .mc-body { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+  .mc-person { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+  .mc-name { font-size: 0.95rem; font-weight: 800; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mc-vehicle-tags { display: flex; align-items: center; gap: 0.35rem; }
+  .mc-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; background: var(--bg-subtle); border-radius: var(--radius-md); padding: 0.55rem 0.7rem; }
+  .mc-info-item { display: flex; flex-direction: column; gap: 0.15rem; }
+  .mc-info-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; }
+  .mc-info-val { font-size: 0.76rem; font-weight: 700; color: var(--text-main); }
+  .mc-officers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; font-size: 0.7rem; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); padding: 0.45rem 0; }
+  .mc-officer-title { font-size: 0.64rem; color: var(--text-muted); }
   .mc-officer-name-in { font-weight: 700; color: var(--primary); }
   .mc-officer-name-out { font-weight: 700; color: var(--emerald); }
-
-  .mc-notes {
-    font-size: 0.74rem;
-    color: var(--text-body);
-    line-height: 1.45;
-    background: #fdfdfd;
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-sm);
-    padding: 0.4rem 0.6rem;
-  }
-
-  .mc-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.35rem;
-  }
-
-  .mc-shift-tag {
-    font-size: 0.68rem;
-    color: var(--text-faint);
-  }
+  .mc-notes { font-size: 0.74rem; color: var(--text-body); line-height: 1.45; background: #fdfdfd; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.4rem 0.6rem; }
+  .mc-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 0.35rem; }
+  .mc-shift-tag { font-size: 0.68rem; color: var(--text-faint); }
 }
 
-/* دکمه شناور ثبت تردد در موبایل (FAB) */
 .mobile-fab {
   display: none;
   position: fixed;
@@ -1156,18 +944,12 @@ body {
   padding: 0.75rem 1.4rem;
   font-size: 0.85rem;
   font-weight: 800;
-  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
   cursor: pointer;
   z-index: 35;
   align-items: center;
   gap: 0.45rem;
-  transition: all 0.15s ease;
   white-space: nowrap;
-}
-
-.mobile-fab:active {
-  transform: translateX(-50%) scale(0.95);
-  box-shadow: 0 5px 15px -3px rgba(37, 99, 235, 0.4);
 }
 
 @media (max-width: 820px) {
@@ -1175,7 +957,7 @@ body {
 }
 
 /* ==========================================================================
-   مودال‌ها و دیالوگ‌ها (Clean Frosted Dialogs)
+   مودال‌ها
    ========================================================================== */
 .modal-backdrop {
   position: fixed;
@@ -1191,10 +973,7 @@ body {
 }
 
 @media (max-width: 640px) {
-  .modal-backdrop {
-    align-items: flex-end;
-    padding: 0;
-  }
+  .modal-backdrop { align-items: flex-end; padding: 0; }
 }
 
 .modal-card {
@@ -1208,7 +987,6 @@ body {
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  animation: modalScaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-card.modal-card-lg { max-width: 680px; }
@@ -1218,18 +996,7 @@ body {
     max-height: 88dvh;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-}
-
-@keyframes modalScaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes modalSlideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
 }
 
 .modal-header {
@@ -1266,11 +1033,6 @@ body {
   line-height: 1;
   padding: 0.2rem 0.4rem;
   border-radius: var(--radius-sm);
-  transition: color 0.15s, background-color 0.15s;
-}
-.modal-close:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: var(--text-main);
 }
 
 .modal-form {
@@ -1286,7 +1048,21 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  position: relative;
 }
+
+.label-with-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.field-hint-micro {
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
 .form-label {
   font-size: 0.72rem;
   font-weight: 700;
@@ -1319,14 +1095,10 @@ body {
   font-size: 0.75rem;
   padding: 0.6rem 0.8rem;
   border-radius: var(--radius-md);
-  line-height: 1.4;
   font-weight: 600;
 }
 
-.input-with-action {
-  display: flex;
-  gap: 0.4rem;
-}
+.input-with-action { display: flex; gap: 0.4rem; }
 .input-with-action input { flex: 1; }
 
 .exit-summary-box {
@@ -1344,7 +1116,6 @@ body {
 .exit-summary-officer { font-size: 0.72rem; color: var(--primary); }
 .exit-summary-active-guard { font-size: 0.74rem; color: var(--emerald); }
 
-/* کلید دوحالته خودرو / پیاده (Segmented Switch) */
 .segmented-control {
   display: flex;
   width: 100%;
@@ -1367,7 +1138,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: 0.4rem;
   min-height: 34px;
   transition: all 0.15s ease;
 }
@@ -1377,19 +1148,194 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-.autofill-banner {
-  background: var(--emerald-subtle);
-  border: 1px solid var(--emerald-border);
-  color: var(--emerald);
+/* ==========================================================================
+   موتور پیش‌بینی هوشمند (Smart Suggestion Popup)
+   ========================================================================== */
+.smart-suggest-popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  background: #ffffff;
+  border: 1.5px solid var(--primary-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  z-index: 80;
+  overflow: hidden;
+  animation: popupSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popupSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.suggest-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--primary-subtle);
+  border-bottom: 1px solid var(--primary-border);
   padding: 0.45rem 0.75rem;
-  border-radius: var(--radius-md);
+}
+
+.suggest-box-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 800;
+  color: var(--primary-hover);
+}
+
+.suggest-box-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+.suggest-box-close:hover { color: var(--rose); }
+
+.suggest-items-container {
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.suggest-item {
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  transition: background-color 0.15s ease;
+}
+
+.suggest-item:last-child { border-bottom: none; }
+.suggest-item:hover, .suggest-item.is-selected { background-color: var(--primary-subtle); }
+
+.suggest-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.suggest-item-name-group {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  box-shadow: var(--shadow-xs);
 }
+
+.suggest-item-name {
+  font-weight: 800;
+  font-size: 0.86rem;
+  color: var(--text-main);
+}
+
+.suggest-item-middle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.suggest-item-veh {
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+.suggest-item-notes {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggest-item-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.25rem;
+}
+
+.suggest-item-lastseen {
+  font-size: 0.65rem;
+  color: var(--text-faint);
+}
+
+.btn-apply-suggestion {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-apply-suggestion:hover { background: var(--primary-hover); }
+
+.btn-apply-suggestion kbd {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 0.62rem;
+}
+
+/* بنر تکمیل خودکار و دکمه انصراف */
+.autofill-banner {
+  background: var(--emerald-subtle);
+  border: 1px solid var(--emerald-border);
+  color: var(--emerald-hover);
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  animation: toastSlideUp 0.2s ease-out;
+}
+
+.autofill-text {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-undo-link {
+  background: none;
+  border: none;
+  color: var(--rose);
+  font-weight: 800;
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.btn-undo-link:hover { color: var(--rose-hover); }
+
+/* افکت نورانی فیلدهای پر شده خودکار */
+@keyframes glowField {
+  0% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.4); border-color: var(--emerald); }
+  100% { box-shadow: none; border-color: var(--border); }
+}
+.autofilled-field { animation: glowField 1.6s ease-out; }
 
 /* تب‌های تنظیمات */
 .settings-tabs {
@@ -1410,7 +1356,6 @@ body {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
-  transition: all 0.15s ease;
 }
 .settings-tab-btn.active {
   color: var(--primary);
@@ -1481,7 +1426,6 @@ body {
   background: var(--bg-surface);
   font-size: 0.78rem;
   gap: 0.5rem;
-  box-shadow: var(--shadow-xs);
 }
 
 .user-item-info { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
@@ -1503,11 +1447,10 @@ body {
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   font-size: 0.76rem;
-  box-shadow: var(--shadow-xs);
 }
 
 /* ==========================================================================
-   پیام‌های شناور (Floating Toast Notifications)
+   پیام‌های شناور (Toast) و ویجت بارگذاری
    ========================================================================== */
 .empty-state {
   padding: 3rem 1rem;
@@ -1526,10 +1469,7 @@ body {
   margin-bottom: 0.25rem;
   font-size: 0.88rem;
 }
-.empty-subtitle {
-  font-size: 0.74rem;
-  color: var(--text-muted);
-}
+.empty-subtitle { font-size: 0.74rem; color: var(--text-muted); }
 
 .toast-container {
   position: fixed;
@@ -1568,14 +1508,13 @@ body {
 
 @keyframes toastSlideUp {
   from { opacity: 0; transform: translateY(12px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.toast-success { border-color: var(--emerald-border); color: var(--emerald); background-color: #ffffff; }
-.toast-error { border-color: var(--rose-border); color: var(--rose); background-color: #ffffff; }
-.toast-info { border-color: var(--primary-border); color: var(--primary); background-color: #ffffff; }
+.toast-success { border-color: var(--emerald-border); color: var(--emerald); }
+.toast-error { border-color: var(--rose-border); color: var(--rose); }
+.toast-info { border-color: var(--primary-border); color: var(--primary); }
 
-/* ویجت بارگذاری */
 .loading-overlay {
   position: absolute;
   inset: 0;
@@ -1591,7 +1530,6 @@ body {
   border-radius: var(--radius-lg);
 }
 
-/* کمکی‌ها */
 .hidden { display: none !important; }
 .text-center { text-align: center; }
 .w-12 { width: 3rem; }
