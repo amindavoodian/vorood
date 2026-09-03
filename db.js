@@ -1,18 +1,13 @@
 /**
  * db.js
  * لایه پایگاه داده با پیکربندی هاردکد شده (Turso Cloud + LocalStorage Fallback)
+ * پشتیبانی از ترددها، کاربران، پروفایل‌ها و یادداشت‌های چسبان (Sticky Notes)
  */
 
 (function () {
-  /**
-   * =========================================================================
-   * تنظیمات اتصال دیتابیس ابری (Hardcoded Configuration)
-   * آدرس دیتابیس و توکن خود را در متغیر زیر قرار دهید:
-   * =========================================================================
-   */
   const HARDCODED_TURSO_CONFIG = {
-    databaseUrl: 'libsql://voroodkhorooj-dramindavoudian.aws-ap-northeast-1.turso.io', // آدرس دیتابیس Turso خود را اینجا بگذارید
-    authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODgzMzc0MjcsImlkIjoiMDFhMDM3NjMtNGUwMS03YjZlLWFkYzgtNzg5M2YzOThlZDhlIiwia2lkIjoiZXNsNzRzeFBkRkVydjc2ckRBRDFBdU1ZcVlwcGlJcFFfUlh3aU1EM0JDbyIsInJpZCI6Ijg1NTU5Y2E1LTQxZjYtNDFjMy05ZjdhLWJkNDk2NGVjN2JmZCJ9.ROZxJ6wb1Sf7nf3WLjrZb55DEtMSgHWVgVadNBp9qUA7FcI2iwpJk-zcS3NqcxrrpjgCDk8NkvsySdD_kEf9Dg'       // توکن دسترسی Turso خود را اینجا بگذارید
+    databaseUrl: 'libsql://voroodkhorooj-dramindavoudian.aws-ap-northeast-1.turso.io',
+    authToken: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODgzMzc0MjcsImlkIjoiMDFhMDM3NjMtNGUwMS03YjZlLWFkYzgtNzg5M2YzOThlZDhlIiwia2lkIjoiZXNsNzRzeFBkRkVydjc2ckRBRDFBdU1ZcVlwcGlJcFFfUlh3aU1EM0JDbyIsInJpZCI6Ijg1NTU5Y2E1LTQxZjYtNDFjMy05ZjdhLWJkNDk2NGVjN2JmZCJ9.ROZxJ6wb1Sf7nf3WLjrZb55DEtMSgHWVgVadNBp9qUA7FcI2iwpJk-zcS3NqcxrrpjgCDk8NkvsySdD_kEf9Dg'
   };
 
   const DB = {
@@ -20,17 +15,12 @@
     USERS_KEY: 'campus_guard_users_v8',
     ACTIVE_USER_KEY: 'campus_guard_active_user_v8',
     PROFILES_KEY: 'campus_guard_profiles_v8',
+    NOTES_KEY: 'campus_guard_sticky_notes_v8',
 
-    /**
-     * دریافت تنظیمات دیتابیس از مقادیر هاردکد شده
-     */
     getTursoConfig() {
       return HARDCODED_TURSO_CONFIG;
     },
 
-    /**
-     * بررسی فعال بودن اتصال ابری
-     */
     isCloudConfigured() {
       const cfg = this.getTursoConfig();
       return !!(
@@ -153,11 +143,27 @@
         );
       `;
 
+      const createNotesTable = `
+        CREATE TABLE IF NOT EXISTS campus_sticky_notes (
+          id TEXT PRIMARY KEY,
+          author_id TEXT,
+          author_name TEXT,
+          content TEXT,
+          color TEXT,
+          reminder_datetime TEXT,
+          reminder_jalali TEXT,
+          is_dismissed INTEGER DEFAULT 0,
+          snoozed_until TEXT,
+          created_at TEXT,
+          updated_at TEXT
+        );
+      `;
+
       try { await this.executeTurso(createRecordsTable); } catch (e) {}
       try { await this.executeTurso(createUsersTable); } catch (e) {}
       try { await this.executeTurso(createProfilesTable); } catch (e) {}
+      try { await this.executeTurso(createNotesTable); } catch (e) {}
 
-      // اصلاح و همگام‌سازی خودکار ستون‌های جداول در صورت ارتقاء
       const columns = [
         { t: 'campus_records', c: 'entry_guard_name' },
         { t: 'campus_records', c: 'entry_guard_shift' },
@@ -167,7 +173,9 @@
         { t: 'campus_records', c: 'vehicle_category' },
         { t: 'campus_records', c: 'vehicle_model' },
         { t: 'campus_records', c: 'person_category' },
-        { t: 'campus_users', c: 'created_at' }
+        { t: 'campus_users', c: 'created_at' },
+        { t: 'campus_sticky_notes', c: 'reminder_jalali' },
+        { t: 'campus_sticky_notes', c: 'snoozed_until' }
       ];
 
       for (const item of columns) {
@@ -199,9 +207,7 @@
       try {
         const raw = localStorage.getItem(this.USERS_KEY);
         return raw ? JSON.parse(raw) : [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     },
 
     saveLocalUsers(usersList) {
@@ -649,16 +655,140 @@
       }
     },
 
-    findProfileByPlate(p1, ltr, p2, city) {
-      const key = this.generateProfileKey('VEHICLE', p1, ltr, p2, city);
-      const profiles = this.getLocalProfiles();
-      return profiles[key] || null;
+    /* =========================================================================
+       بخش مدیریت یادداشت‌های چسبان (Sticky Notes)
+       ========================================================================= */
+    getLocalNotes() {
+      try {
+        const raw = localStorage.getItem(this.NOTES_KEY) || '[]';
+        return JSON.parse(raw);
+      } catch { return []; }
     },
 
-    findProfileByName(name) {
-      const key = this.generateProfileKey('PEDESTRIAN', null, null, null, null, name);
-      const profiles = this.getLocalProfiles();
-      return profiles[key] || null;
+    saveLocalNotes(notesList) {
+      localStorage.setItem(this.NOTES_KEY, JSON.stringify(notesList));
+    },
+
+    async getStickyNotes() {
+      if (this.isCloudConfigured()) {
+        try {
+          const res = await this.executeTurso('SELECT * FROM campus_sticky_notes ORDER BY created_at DESC');
+          const rows = this.parseRows(res);
+          if (rows.length > 0) {
+            const mapped = rows.map(r => ({
+              id: r.id,
+              authorId: r.author_id,
+              authorName: r.author_name,
+              content: r.content,
+              color: r.color || 'yellow',
+              reminderDatetime: r.reminder_datetime,
+              reminderJalali: r.reminder_jalali,
+              isDismissed: Number(r.is_dismissed) === 1,
+              snoozedUntil: r.snoozed_until,
+              createdAt: r.created_at,
+              updatedAt: r.updated_at
+            }));
+            this.saveLocalNotes(mapped);
+            return mapped;
+          }
+        } catch (e) {
+          console.warn('استفاده از نسخه محلی یادداشت‌ها:', e);
+        }
+      }
+      return this.getLocalNotes();
+    },
+
+    async saveStickyNote(noteData) {
+      const isEdit = !!noteData.id;
+      const noteId = isEdit ? noteData.id : 'note_' + Date.now();
+      const nowIso = new Date().toISOString();
+
+      const newNote = {
+        id: noteId,
+        authorId: noteData.authorId || this.getCurrentUser()?.id || 'anonymous',
+        authorName: noteData.authorName || this.getCurrentUser()?.name || 'مامور شیفت',
+        content: (noteData.content || '').trim(),
+        color: noteData.color || 'yellow',
+        reminderDatetime: noteData.reminderDatetime || null,
+        reminderJalali: noteData.reminderJalali || null,
+        isDismissed: noteData.isDismissed ? 1 : 0,
+        snoozedUntil: noteData.snoozedUntil || null,
+        createdAt: noteData.createdAt || nowIso,
+        updatedAt: nowIso
+      };
+
+      if (this.isCloudConfigured()) {
+        try {
+          await this.executeTurso(`
+            INSERT INTO campus_sticky_notes (
+              id, author_id, author_name, content, color,
+              reminder_datetime, reminder_jalali, is_dismissed, snoozed_until, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              author_name=excluded.author_name,
+              content=excluded.content,
+              color=excluded.color,
+              reminder_datetime=excluded.reminder_datetime,
+              reminder_jalali=excluded.reminder_jalali,
+              is_dismissed=excluded.is_dismissed,
+              snoozed_until=excluded.snoozed_until,
+              updated_at=excluded.updated_at;
+          `, [
+            newNote.id, newNote.authorId, newNote.authorName, newNote.content, newNote.color,
+            newNote.reminderDatetime, newNote.reminderJalali, newNote.isDismissed, newNote.snoozedUntil,
+            newNote.createdAt, newNote.updatedAt
+          ]);
+        } catch (e) {
+          console.error('خطای ذخیره یادداشت در سرور ابری:', e);
+        }
+      }
+
+      let localNotes = this.getLocalNotes();
+      const idx = localNotes.findIndex(n => n.id === noteId);
+      const mappedForLocal = {
+        ...newNote,
+        isDismissed: newNote.isDismissed === 1
+      };
+
+      if (idx !== -1) {
+        localNotes[idx] = mappedForLocal;
+      } else {
+        localNotes.unshift(mappedForLocal);
+      }
+      this.saveLocalNotes(localNotes);
+      return mappedForLocal;
+    },
+
+    async deleteStickyNote(noteId) {
+      if (this.isCloudConfigured()) {
+        try {
+          await this.executeTurso('DELETE FROM campus_sticky_notes WHERE id = ?', [noteId]);
+        } catch (e) {}
+      }
+      let localNotes = this.getLocalNotes().filter(n => n.id !== noteId);
+      this.saveLocalNotes(localNotes);
+    },
+
+    async updateNoteAlertStatus(noteId, { isDismissed, snoozedUntil }) {
+      const nowIso = new Date().toISOString();
+      if (this.isCloudConfigured()) {
+        try {
+          await this.executeTurso(`
+            UPDATE campus_sticky_notes 
+            SET is_dismissed = ?, snoozed_until = ?, updated_at = ?
+            WHERE id = ?
+          `, [isDismissed ? 1 : 0, snoozedUntil || null, nowIso, noteId]);
+        } catch (e) {}
+      }
+
+      let localNotes = this.getLocalNotes();
+      const idx = localNotes.findIndex(n => n.id === noteId);
+      if (idx !== -1) {
+        localNotes[idx].isDismissed = !!isDismissed;
+        localNotes[idx].snoozedUntil = snoozedUntil || null;
+        localNotes[idx].updatedAt = nowIso;
+        this.saveLocalNotes(localNotes);
+      }
     }
   };
 
