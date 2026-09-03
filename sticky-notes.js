@@ -1,17 +1,83 @@
 /**
  * sticky-notes.js
- * ماژول مدیریت یادداشت‌های چسبان، یادآور صوتی و پنجره هشدار تمام صفحه (Blur Alert)
+ * ماژول پیشرفته مدیریت یادداشت‌های چسبان، سیستم هوشمند یادآور و پنجره هشدار بلور
  */
 
 (function () {
   const toPersian = (v) => (window.Jalali && Jalali.toPersianDigits) ? Jalali.toPersianDigits(String(v ?? '')) : String(v ?? '');
   const toLatin = (v) => (window.Jalali && Jalali.toLatinDigits) ? Jalali.toLatinDigits(String(v ?? '')) : String(v ?? '');
 
+  // تبدیل مطمئن تاریخ شمسی به میلادی (با پشتیبانی از آرایه یا آبجکت خروجی)
+  function safeJalaliToGregorian(jDateStr, jTimeStr) {
+    try {
+      const cleanDate = toLatin(jDateStr || '').trim();
+      const cleanTime = toLatin(jTimeStr || '').trim();
+      const parts = cleanDate.split(/[\/\-]/).map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return null;
+
+      const [jy, jm, jd] = parts;
+      let gY, gM, gD;
+
+      if (window.Jalali && typeof Jalali.toGregorian === 'function') {
+        const greg = Jalali.toGregorian(jy, jm, jd);
+        if (Array.isArray(greg)) {
+          [gY, gM, gD] = greg;
+        } else if (greg && typeof greg === 'object') {
+          gY = greg.gy ?? greg.year;
+          gM = greg.gm ?? greg.month;
+          gD = greg.gd ?? greg.day;
+        }
+      }
+
+      // الگوریتم محاسباتی بک‌آپ در صورت در دسترس نبودن تابع
+      if (!gY || !gM || !gD) {
+        const g = jalaliFallbackConverter(jy, jm, jd);
+        gY = g.gy; gM = g.gm; gD = g.gd;
+      }
+
+      let hour = 0, min = 0;
+      if (cleanTime) {
+        const timeParts = cleanTime.split(':').map(Number);
+        hour = timeParts[0] || 0;
+        min = timeParts[1] || 0;
+      }
+
+      return new Date(gY, gM - 1, gD, hour, min, 0);
+    } catch (e) {
+      console.error('خطای تبدیل تاریخ جلالی:', e);
+      return null;
+    }
+  }
+
+  function jalaliFallbackConverter(jy, jm, jd) {
+    const gy = jy <= 979 ? 621 : 1600;
+    jy -= jy <= 979 ? 0 : 979;
+    let days = (365 * jy) + (Math.floor(jy / 33) * 8) + Math.floor(((jy % 33) + 3) / 4) + 78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+    let gy2 = gy + 400 * Math.floor(days / 146097);
+    days %= 146097;
+    if (days > 36524) {
+      gy2 += 100 * Math.floor(--days / 36524);
+      days %= 36524;
+      if (days >= 365) days++;
+    }
+    gy2 += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) {
+      gy2 += Math.floor((days - 1) / 365);
+      days = (days - 1) % 365;
+    }
+    let gd = days + 1;
+    const sal_a = [0, 31, ((gy2 % 4 === 0 && gy2 % 100 !== 0) || (gy2 % 400 === 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let gm;
+    for (gm = 0; gm < 13 && gd > sal_a[gm]; gm++) gd -= sal_a[gm];
+    return { gy: gy2, gm: gm, gd: gd };
+  }
+
   const StickyNotes = {
     notes: [],
     activeAlertNote: null,
     alertCheckInterval: null,
-    isMobileDrawerOpen: false,
+    audioCtx: null,
 
     colorThemes: {
       yellow: { name: 'کهربایی ملایم', bgClass: 'sn-color-yellow' },
@@ -24,41 +90,68 @@
 
     async init() {
       this.bindDOM();
+      this.initAudioUnlock();
       await this.loadNotes();
       this.startReminderChecker();
     },
 
+    initAudioUnlock() {
+      const unlock = () => {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext && !this.audioCtx) {
+            this.audioCtx = new AudioContext();
+          }
+          if (this.audioCtx && this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+          }
+        } catch (e) {}
+        document.removeEventListener('click', unlock);
+        document.removeEventListener('keydown', unlock);
+        document.removeEventListener('touchstart', unlock);
+      };
+      document.addEventListener('click', unlock, { once: true });
+      document.addEventListener('keydown', unlock, { once: true });
+      document.addEventListener('touchstart', unlock, { once: true });
+
+      // درخواست مجوز نوتیفیکیشن مرورگر برای اطمینان مضاعف
+      if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => Notification.requestPermission(), 3000);
+      }
+    },
+
     bindDOM() {
-      // عناصر دسکتاپ و موبایل
       this.desktopContainer = document.getElementById('sticky-notes-list-desktop');
       this.mobileContainer = document.getElementById('sticky-notes-list-mobile');
       this.notesCountBadges = document.querySelectorAll('.sn-count-badge');
 
-      // دکمه‌های افزودن
       document.getElementById('btn-add-note-desktop')?.addEventListener('click', () => this.openNoteFormModal());
       document.getElementById('btn-add-note-mobile')?.addEventListener('click', () => this.openNoteFormModal());
 
-      // دکمه باز و بسته کردن کشوی موبایل
       document.getElementById('btn-open-notes-mobile')?.addEventListener('click', () => this.toggleMobileDrawer(true));
       document.getElementById('btn-close-notes-mobile')?.addEventListener('click', () => this.toggleMobileDrawer(false));
 
-      // فرم ایجاد/ویرایش یادداشت
       this.formModal = document.getElementById('modal-sticky-note-form');
       this.noteForm = document.getElementById('form-sticky-note');
       this.noteIdInput = document.getElementById('sn-form-id');
       this.authorInput = document.getElementById('sn-form-author');
       this.contentInput = document.getElementById('sn-form-content');
-      this.colorRadios = document.querySelectorAll('input[name="sn-color"]');
       this.enableReminderCheck = document.getElementById('sn-enable-reminder');
       this.reminderFieldsContainer = document.getElementById('sn-reminder-fields');
       this.reminderDateInput = document.getElementById('sn-reminder-date');
       this.reminderTimeInput = document.getElementById('sn-reminder-time');
 
+      // اتصال فیلدهای یادآور به پیکر اسکرولی
+      if (window.ScrollPicker) {
+        ScrollPicker.attach(this.reminderDateInput, 'DATE');
+        ScrollPicker.attach(this.reminderTimeInput, 'TIME');
+      }
+
       this.enableReminderCheck?.addEventListener('change', (e) => {
         this.reminderFieldsContainer?.classList.toggle('hidden', !e.target.checked);
         if (e.target.checked && !this.reminderDateInput.value) {
           const now = new Date();
-          now.setMinutes(now.getMinutes() + 30);
+          now.setMinutes(now.getMinutes() + 15);
           if (window.Jalali) {
             this.reminderDateInput.value = Jalali.formatJalaliDate(now);
             this.reminderTimeInput.value = Jalali.formatTime(now);
@@ -68,7 +161,7 @@
 
       this.noteForm?.addEventListener('submit', (e) => this.handleSaveNote(e));
 
-      // پنجره هشدار یادآور (Blur Modal)
+      // پنجره هشدار سررسید یادداشت
       this.alertModal = document.getElementById('modal-note-alert');
       this.alertAuthorEl = document.getElementById('alert-note-author');
       this.alertContentEl = document.getElementById('alert-note-content');
@@ -77,10 +170,16 @@
       document.getElementById('btn-alert-snooze-5')?.addEventListener('click', () => this.handleSnooze(5));
       document.getElementById('btn-alert-snooze-15')?.addEventListener('click', () => this.handleSnooze(15));
       document.getElementById('btn-alert-dismiss')?.addEventListener('click', () => this.handleDismiss());
+
+      // اگر کاربر روی پس‌زمینه مودال آلرت کلیک کرد، مقدار فعال پاک شود تا مانع هشدارهای بعدی نشود
+      this.alertModal?.addEventListener('click', (e) => {
+        if (e.target === this.alertModal) {
+          this.handleSnooze(5); // تعویق خودکار ۵ دقیقه‌ای به جای سوزاندن هشدار
+        }
+      });
     },
 
     toggleMobileDrawer(open) {
-      this.isMobileDrawerOpen = open;
       const drawer = document.getElementById('mobile-notes-drawer');
       if (drawer) {
         drawer.classList.toggle('hidden', !open);
@@ -111,12 +210,8 @@
         </div>
       `;
 
-      if (this.desktopContainer) {
-        this.desktopContainer.innerHTML = activeCount > 0 ? renderHtml : emptyHtml;
-      }
-      if (this.mobileContainer) {
-        this.mobileContainer.innerHTML = activeCount > 0 ? renderHtml : emptyHtml;
-      }
+      if (this.desktopContainer) this.desktopContainer.innerHTML = activeCount > 0 ? renderHtml : emptyHtml;
+      if (this.mobileContainer) this.mobileContainer.innerHTML = activeCount > 0 ? renderHtml : emptyHtml;
 
       this.attachNoteActionListeners();
     },
@@ -147,7 +242,7 @@
           </div>
           <div class="sn-card-footer">
             ${hasReminder ? `
-              <div class="sn-reminder-badge" title="یادآوری فعال">
+              <div class="sn-reminder-badge ${new Date(note.reminderDatetime) <= new Date() ? 'sn-reminder-overdue' : ''}" title="یادآوری فعال">
                 <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>${reminderDisplay}</span>
               </div>
@@ -207,7 +302,8 @@
         this.noteIdInput.value = '';
         this.authorInput.value = activeUser ? activeUser.name : 'مامور انتظامات';
         this.contentInput.value = '';
-        document.querySelector('input[name="sn-color"][value="yellow"]').checked = true;
+        const yellowRadio = document.querySelector('input[name="sn-color"][value="yellow"]');
+        if (yellowRadio) yellowRadio.checked = true;
         this.enableReminderCheck.checked = false;
         this.reminderFieldsContainer.classList.add('hidden');
         this.reminderDateInput.value = '';
@@ -240,21 +336,25 @@
       if (isReminderEnabled) {
         const rDate = toLatin(this.reminderDateInput.value.trim());
         const rTime = toLatin(this.reminderTimeInput.value.trim());
+
         if (!rDate || !rTime) {
           const err = document.getElementById('sn-form-error');
-          err.textContent = 'جهت فعال‌سازی هشدار، وارد کردن تاریخ و ساعت الزامی است.';
+          err.textContent = 'جهت فعال‌سازی هشدار، انتخاب تاریخ و ساعت الزامی است.';
           err.classList.remove('hidden');
           return;
         }
 
         reminderJalaliStr = `${rDate} ${rTime}`;
-        if (window.Jalali && Jalali.toGregorian) {
-          const [jy, jm, jd] = rDate.split('/').map(Number);
-          const [gY, gM, gD] = Jalali.toGregorian(jy, jm, jd);
-          const [hour, min] = rTime.split(':').map(Number);
-          const dt = new Date(gY, gM - 1, gD, hour, min, 0);
-          reminderIso = dt.toISOString();
+        const targetDateObj = safeJalaliToGregorian(rDate, rTime);
+
+        if (!targetDateObj || isNaN(targetDateObj.getTime())) {
+          const err = document.getElementById('sn-form-error');
+          err.textContent = 'فرمت تاریخ یا ساعت یادآوری نامعتبر است.';
+          err.classList.remove('hidden');
+          return;
         }
+
+        reminderIso = targetDateObj.toISOString();
       }
 
       await window.DB.saveStickyNote({
@@ -274,8 +374,18 @@
 
     startReminderChecker() {
       if (this.alertCheckInterval) clearInterval(this.alertCheckInterval);
-      // بررسی دوره‌ای هشدارها هر ۱۰ ثانیه
-      this.alertCheckInterval = setInterval(() => this.checkPendingReminders(), 10000);
+      // بررسی هر ۵ ثانیه
+      this.alertCheckInterval = setInterval(async () => {
+        // تازه‌سازی یادداشت‌ها جهت همگام‌سازی ابری و محلی
+        try {
+          const cloudNotes = window.DB ? (await window.DB.getStickyNotes()) : [];
+          if (cloudNotes && cloudNotes.length > 0) {
+            this.notes = cloudNotes;
+          }
+        } catch (e) {}
+        this.checkPendingReminders();
+      }, 5000);
+
       this.checkPendingReminders();
     },
 
@@ -287,8 +397,9 @@
         if (!note.reminderDatetime || note.isDismissed) continue;
 
         const reminderTime = new Date(note.reminderDatetime);
-        const snoozedTime = note.snoozedUntil ? new Date(note.snoozedUntil) : null;
+        if (isNaN(reminderTime.getTime())) continue;
 
+        const snoozedTime = note.snoozedUntil ? new Date(note.snoozedUntil) : null;
         const isDue = reminderTime <= now;
         const isSnoozeExpired = !snoozedTime || snoozedTime <= now;
 
@@ -306,6 +417,17 @@
       this.alertTimeEl.textContent = note.reminderJalali ? toPersian(note.reminderJalali) : 'هم‌اکنون';
 
       this.playChimeSound();
+
+      // اعلان سیستم عامل / مرورگر
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('یادآوری نگهبانی و حراست', {
+            body: `${note.authorName || 'مامور شیفت'}: ${note.content}`,
+            icon: 'mosque.svg'
+          });
+        } catch (e) {}
+      }
+
       this.alertModal.classList.remove('hidden');
     },
 
@@ -313,45 +435,66 @@
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
-        const ctx = new AudioContext();
-        const notes = [523.25, 659.25, 783.99, 1046.50]; // نغمه C5, E5, G5, C6
-        notes.forEach((freq, idx) => {
+        const ctx = this.audioCtx || new AudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        // ملودی توجه سه‌گانه رسا و حرفه‌ای
+        const melody = [
+          { f: 587.33, d: 0.14 }, // D5
+          { f: 880.00, d: 0.16 }, // A5
+          { f: 1174.66, d: 0.40 } // D6
+        ];
+
+        let start = ctx.currentTime + 0.05;
+        melody.forEach(item => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
-          gain.gain.setValueAtTime(0.18, ctx.currentTime + idx * 0.12);
-          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.12 + 0.38);
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(item.f, start);
+
+          gain.gain.setValueAtTime(0.35, start);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + item.d);
+
           osc.connect(gain);
           gain.connect(ctx.destination);
-          osc.start(ctx.currentTime + idx * 0.12);
-          osc.stop(ctx.currentTime + idx * 0.12 + 0.42);
+
+          osc.start(start);
+          osc.stop(start + item.d + 0.05);
+          start += item.d + 0.06;
         });
-      } catch (e) {}
+      } catch (e) {
+        console.warn('پخش صدا امکان‌پذیر نبود:', e);
+      }
     },
 
     async handleSnooze(minutes) {
       if (!this.activeAlertNote) return;
+      const targetNoteId = this.activeAlertNote.id;
       const snoozeUntil = new Date(Date.now() + minutes * 60 * 1000).toISOString();
-      await window.DB.updateNoteAlertStatus(this.activeAlertNote.id, {
+
+      this.alertModal.classList.add('hidden');
+      this.activeAlertNote = null;
+
+      await window.DB.updateNoteAlertStatus(targetNoteId, {
         isDismissed: false,
         snoozedUntil: snoozeUntil
       });
 
-      this.alertModal.classList.add('hidden');
-      this.activeAlertNote = null;
       await this.loadNotes();
     },
 
     async handleDismiss() {
       if (!this.activeAlertNote) return;
-      await window.DB.updateNoteAlertStatus(this.activeAlertNote.id, {
+      const targetNoteId = this.activeAlertNote.id;
+
+      this.alertModal.classList.add('hidden');
+      this.activeAlertNote = null;
+
+      await window.DB.updateNoteAlertStatus(targetNoteId, {
         isDismissed: true,
         snoozedUntil: null
       });
 
-      this.alertModal.classList.add('hidden');
-      this.activeAlertNote = null;
       await this.loadNotes();
     },
 
