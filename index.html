@@ -20,7 +20,6 @@
   <!-- هدر اصلی برنامه -->
   <header class="app-header">
     <div class="header-container">
-      <!-- برند برنامه: لوگوی mosque.svg با طراحی فشرده و بدون شکست متن در موبایل -->
       <div class="brand">
         <img src="mosque.svg" alt="پردیس" class="brand-mosque-logo" />
       </div>
@@ -31,6 +30,12 @@
           <span class="status-dot"></span>
           <span id="db-status-text">دیتابیس محلی</span>
         </div>
+
+        <!-- دکمه یادداشت‌ها در موبایل با نشانگر تعداد -->
+        <button id="btn-open-notes-mobile" class="btn btn-secondary icon-btn-mobile btn-notes-toggle" title="یادداشت‌های نگهبانی">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span class="sn-count-badge hidden">۰</span>
+        </button>
 
         <!-- نشانگر کاربر جاری -->
         <div class="active-user-badge-container" id="btn-open-user-profile" title="تغییر کاربر یا مشاهده مشخصات">
@@ -43,7 +48,6 @@
           </button>
         </div>
 
-        <!-- دکمه‌های هدر -->
         <button id="btn-export-backup" class="btn btn-secondary icon-btn-mobile" title="پشتیبان‌گیری کامل (JSON)">
           <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span class="hide-on-mobile">پشتیبان</span>
@@ -67,279 +71,448 @@
     </div>
   </header>
 
-  <!-- محتوای اصلی -->
-  <main class="main-content">
-    <div id="no-read-permission-banner" class="permission-alert-banner hidden">
-      <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span>کاربر گرامی، شما مجوز «مشاهده و خواندن ترددها» را ندارید.</span>
-    </div>
-
-    <!-- کارت‌های آمار -->
-    <section class="stats-grid" id="stats-container">
-      <div class="stat-card stat-card-amber">
-        <div class="stat-info">
-          <span class="stat-label">حاضرین در پردیس</span>
-          <div class="stat-value-group">
-            <span id="stat-active-count" class="stat-value">۰</span>
-            <span class="stat-unit">مورد</span>
-          </div>
-        </div>
-        <div class="stat-icon-wrapper">
-          <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </div>
+  <!-- کانتینر چیدمان اصلی (محتوا + ستون یادداشت‌ها در دسکتاپ) -->
+  <div class="app-layout-wrapper">
+    <!-- محتوای اصلی -->
+    <main class="main-content">
+      <div id="no-read-permission-banner" class="permission-alert-banner hidden">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>کاربر گرامی، شما مجوز «مشاهده و خواندن ترددها» را ندارید.</span>
       </div>
 
-      <div class="stat-card stat-card-blue">
-        <div class="stat-info">
-          <span class="stat-label">کل ورودی‌ها</span>
-          <div class="stat-value-group">
-            <span id="stat-total-count" class="stat-value">۰</span>
-            <span class="stat-unit">تردد</span>
+      <!-- کارت‌های آمار -->
+      <section class="stats-grid" id="stats-container">
+        <div class="stat-card stat-card-amber">
+          <div class="stat-info">
+            <span class="stat-label">حاضرین در پردیس</span>
+            <div class="stat-value-group">
+              <span id="stat-active-count" class="stat-value">۰</span>
+              <span class="stat-unit">مورد</span>
+            </div>
+          </div>
+          <div class="stat-icon-wrapper">
+            <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
         </div>
-        <div class="stat-icon-wrapper">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+
+        <div class="stat-card stat-card-blue">
+          <div class="stat-info">
+            <span class="stat-label">کل ورودی‌ها</span>
+            <div class="stat-value-group">
+              <span id="stat-total-count" class="stat-value">۰</span>
+              <span class="stat-unit">تردد</span>
+            </div>
+          </div>
+          <div class="stat-icon-wrapper">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          </div>
         </div>
+
+        <div class="stat-card stat-card-purple">
+          <div class="stat-info">
+            <span class="stat-label">پرسنل و اساتید</span>
+            <div class="stat-value-group">
+              <span id="stat-staff-count" class="stat-value">۰</span>
+              <span class="stat-unit">مورد</span>
+            </div>
+          </div>
+          <div class="stat-icon-wrapper">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-emerald">
+          <div class="stat-info">
+            <span class="stat-label">خروج‌های ثبت‌شده</span>
+            <div class="stat-value-group">
+              <span id="stat-exited-count" class="stat-value">۰</span>
+              <span class="stat-unit">مورد</span>
+            </div>
+          </div>
+          <div class="stat-icon-wrapper">
+            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ضامن فیلترها در موبایل -->
+      <div class="mobile-filter-toggle-container">
+        <button id="btn-toggle-filters-mobile" class="btn btn-secondary mobile-filter-toggle-btn">
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span>فیلترها و جستجوی پیشرفته</span>
+          </div>
+          <svg id="filter-toggle-arrow" class="svg-icon filter-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
       </div>
 
-      <div class="stat-card stat-card-purple">
-        <div class="stat-info">
-          <span class="stat-label">پرسنل و اساتید</span>
-          <div class="stat-value-group">
-            <span id="stat-staff-count" class="stat-value">۰</span>
-            <span class="stat-unit">مورد</span>
-          </div>
-        </div>
-        <div class="stat-icon-wrapper">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        </div>
-      </div>
-
-      <div class="stat-card stat-card-emerald">
-        <div class="stat-info">
-          <span class="stat-label">خروج‌های ثبت‌شده</span>
-          <div class="stat-value-group">
-            <span id="stat-exited-count" class="stat-value">۰</span>
-            <span class="stat-unit">مورد</span>
-          </div>
-        </div>
-        <div class="stat-icon-wrapper">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </div>
-      </div>
-    </section>
-
-    <!-- ضامن فیلترها در موبایل -->
-    <div class="mobile-filter-toggle-container">
-      <button id="btn-toggle-filters-mobile" class="btn btn-secondary mobile-filter-toggle-btn">
-        <div style="display:flex; align-items:center; gap:0.4rem;">
-          <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-          <span>فیلترها و جستجوی پیشرفته</span>
-        </div>
-        <svg id="filter-toggle-arrow" class="svg-icon filter-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-
-    <!-- پنل فیلترها -->
-    <section id="main-filter-panel" class="filter-panel">
-      <div class="filter-top-row">
-        <div class="date-presets-group">
-          <div class="filter-ctrl-wrapper">
-            <svg class="svg-icon" style="color:var(--text-muted);" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <select id="select-date-preset" class="select-control auto-width">
-              <option value="TODAY">امروز</option>
-              <option value="YESTERDAY">دیروز</option>
-              <option value="LAST_7_DAYS">۷ روز گذشته</option>
-              <option value="THIS_MONTH">این ماه</option>
-              <option value="CUSTOM_DATE">تاریخ انتخابی</option>
-              <option value="ALL">همه تاریخ‌ها</option>
-            </select>
-          </div>
-
-          <div id="day-stepper-group" class="date-stepper-container">
-            <button id="btn-prev-day" class="btn btn-secondary-sm" title="روز قبل">روز قبل</button>
-            <span id="display-jalali-date" class="display-date-text">---</span>
-            <button id="btn-next-day" class="btn btn-secondary-sm" title="روز بعد">روز بعد</button>
-          </div>
-
-          <div id="custom-date-container" class="hidden">
-            <input type="text" id="input-custom-date" inputmode="numeric" class="form-control text-center custom-date-input" placeholder="1405/01/01" />
-          </div>
-        </div>
-
-        <div class="time-filter-wrapper">
-          <div class="filter-ctrl-wrapper">
-            <svg class="svg-icon" style="color:var(--text-muted);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <select id="select-time-filter" class="select-control auto-width">
-              <option value="ALL">همه ساعات</option>
-              <option value="MORNING">شیفت صبح (۰۶ الی ۱۴)</option>
-              <option value="EVENING">شیفت عصر (۱۴ الی ۲۲)</option>
-              <option value="NIGHT">شیفت شب (۲۲ الی ۰۶)</option>
-              <option value="CUSTOM">بازه ساعتی دلخواه</option>
-            </select>
-          </div>
-
-          <div id="custom-time-range" class="time-range-group hidden">
-            <input type="text" id="time-from" inputmode="numeric" class="form-control time-range-input" placeholder="00:00" maxlength="5" />
-            <span class="range-separator">تا</span>
-            <input type="text" id="time-to" inputmode="numeric" class="form-control time-range-input" placeholder="23:59" maxlength="5" />
-          </div>
-        </div>
-      </div>
-
-      <div class="filter-grid">
-        <div class="filter-item">
-          <label class="filter-label" for="input-search">جستجوی متنی (نام، مقصد، مأمور):</label>
-          <div class="search-box">
-            <input type="text" id="input-search" placeholder="تایپ کنید... (میانبر: /)" />
-          </div>
-        </div>
-
-        <div class="filter-item">
-          <label class="filter-label">جستجوی هوشمند پلاک:</label>
-          <div class="plate-wrapper">
-            <div id="search-plate-container" class="iran-plate-input plate-theme-white">
-              <div class="plate-blue-strip">
-                <div class="iran-flag-icon">
-                  <span class="flag-green"></span>
-                  <span class="flag-white"></span>
-                  <span class="flag-red"></span>
-                </div>
-                <span class="plate-country-code">I.R.</span>
-              </div>
-              <input type="text" id="search-plate-p1" inputmode="numeric" class="plate-digit-box w-2digit" placeholder="۱۲" maxlength="2" />
-              <select id="search-plate-ltr" class="plate-letter-box">
-                <option value="ALL">همه</option>
-                <option value="ب">ب</option>
-                <option value="ج">ج</option>
-                <option value="د">د</option>
-                <option value="س">س</option>
-                <option value="ص">ص</option>
-                <option value="ط">ط</option>
-                <option value="ق">ق</option>
-                <option value="ل">ل</option>
-                <option value="م">م</option>
-                <option value="ن">ن</option>
-                <option value="و">و</option>
-                <option value="هـ">هـ</option>
-                <option value="ی">ی</option>
-                <option value="معلولین">♿</option>
-                <option value="ت">ت (تاکسی)</option>
-                <option value="ع">ع (عمومی)</option>
-                <option value="ک">ک (کشاورزی)</option>
-                <option value="پ">پ (پلیس)</option>
-                <option value="ث">ث (سپاه)</option>
-                <option value="ز">ز (وزارت دفاع)</option>
-                <option value="ف">ف (ستاد کل)</option>
-                <option value="الف">الف (دولتی)</option>
-                <option value="تشریفات">تشریفات</option>
-                <option value="ش">ش (ارتش)</option>
-                <option value="D">D</option>
-                <option value="S">S</option>
+      <!-- پنل فیلترها -->
+      <section id="main-filter-panel" class="filter-panel">
+        <div class="filter-top-row">
+          <div class="date-presets-group">
+            <div class="filter-ctrl-wrapper">
+              <svg class="svg-icon" style="color:var(--text-muted);" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <select id="select-date-preset" class="select-control auto-width">
+                <option value="TODAY">امروز</option>
+                <option value="YESTERDAY">دیروز</option>
+                <option value="LAST_7_DAYS">۷ روز گذشته</option>
+                <option value="THIS_MONTH">این ماه</option>
+                <option value="CUSTOM_DATE">تاریخ انتخابی</option>
+                <option value="ALL">همه تاریخ‌ها</option>
               </select>
-              <input type="text" id="search-plate-p2" inputmode="numeric" class="plate-digit-box w-3digit" placeholder="۳۴۵" maxlength="3" />
-              <div class="plate-city-box">
-                <span class="plate-iran-tag">ایران</span>
-                <input type="text" id="search-plate-city" inputmode="numeric" class="plate-digit-box w-city" placeholder="۶۷" maxlength="2" />
-              </div>
+            </div>
+
+            <div id="day-stepper-group" class="date-stepper-container">
+              <button id="btn-prev-day" class="btn btn-secondary-sm" title="روز قبل">روز قبل</button>
+              <span id="display-jalali-date" class="display-date-text">---</span>
+              <button id="btn-next-day" class="btn btn-secondary-sm" title="روز بعد">روز بعد</button>
+            </div>
+
+            <div id="custom-date-container" class="hidden">
+              <input type="text" id="input-custom-date" inputmode="numeric" class="form-control text-center custom-date-input" placeholder="1405/01/01" />
+            </div>
+          </div>
+
+          <div class="time-filter-wrapper">
+            <div class="filter-ctrl-wrapper">
+              <svg class="svg-icon" style="color:var(--text-muted);" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <select id="select-time-filter" class="select-control auto-width">
+                <option value="ALL">همه ساعات</option>
+                <option value="MORNING">شیفت صبح (۰۶ الی ۱۴)</option>
+                <option value="EVENING">شیفت عصر (۱۴ الی ۲۲)</option>
+                <option value="NIGHT">شیفت شب (۲۲ الی ۰۶)</option>
+                <option value="CUSTOM">بازه ساعتی دلخواه</option>
+              </select>
+            </div>
+
+            <div id="custom-time-range" class="time-range-group hidden">
+              <input type="text" id="time-from" inputmode="numeric" class="form-control time-range-input" placeholder="00:00" maxlength="5" />
+              <span class="range-separator">تا</span>
+              <input type="text" id="time-to" inputmode="numeric" class="form-control time-range-input" placeholder="23:59" maxlength="5" />
             </div>
           </div>
         </div>
 
-        <div class="filter-item">
-          <label class="filter-label" for="select-filter-type">نوع مراجع:</label>
-          <select id="select-filter-type" class="select-control">
-            <option value="ALL">همه انواع مراجع</option>
-            <option value="ONLY_VEHICLE">فقط خودرویی</option>
-            <option value="ONLY_PEDESTRIAN">فقط عابر پیاده</option>
-            <option value="CAT_STAFF">پرسنل و اساتید</option>
-            <option value="CAT_GUEST">مهمان و ارباب‌رجوع</option>
-          </select>
+        <div class="filter-grid">
+          <div class="filter-item">
+            <label class="filter-label" for="input-search">جستجوی متنی (نام، مقصد، مأمور):</label>
+            <div class="search-box">
+              <input type="text" id="input-search" placeholder="تایپ کنید... (میانبر: /)" />
+            </div>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label">جستجوی هوشمند پلاک:</label>
+            <div class="plate-wrapper">
+              <div id="search-plate-container" class="iran-plate-input plate-theme-white">
+                <div class="plate-blue-strip">
+                  <div class="iran-flag-icon">
+                    <span class="flag-green"></span>
+                    <span class="flag-white"></span>
+                    <span class="flag-red"></span>
+                  </div>
+                  <span class="plate-country-code">I.R.</span>
+                </div>
+                <input type="text" id="search-plate-p1" inputmode="numeric" class="plate-digit-box w-2digit" placeholder="۱۲" maxlength="2" />
+                <select id="search-plate-ltr" class="plate-letter-box">
+                  <option value="ALL">همه</option>
+                  <option value="ب">ب</option>
+                  <option value="ج">ج</option>
+                  <option value="د">د</option>
+                  <option value="س">س</option>
+                  <option value="ص">ص</option>
+                  <option value="ط">ط</option>
+                  <option value="ق">ق</option>
+                  <option value="ل">ل</option>
+                  <option value="م">م</option>
+                  <option value="ن">ن</option>
+                  <option value="و">و</option>
+                  <option value="هـ">هـ</option>
+                  <option value="ی">ی</option>
+                  <option value="معلولین">♿</option>
+                  <option value="ت">ت (تاکسی)</option>
+                  <option value="ع">ع (عمومی)</option>
+                  <option value="ک">ک (کشاورزی)</option>
+                  <option value="پ">پ (پلیس)</option>
+                  <option value="ث">ث (سپاه)</option>
+                  <option value="ز">ز (وزارت دفاع)</option>
+                  <option value="ف">ف (ستاد کل)</option>
+                  <option value="الف">الف (دولتی)</option>
+                  <option value="تشریفات">تشریفات</option>
+                  <option value="ش">ش (ارتش)</option>
+                  <option value="D">D</option>
+                  <option value="S">S</option>
+                </select>
+                <input type="text" id="search-plate-p2" inputmode="numeric" class="plate-digit-box w-3digit" placeholder="۳۴۵" maxlength="3" />
+                <div class="plate-city-box">
+                  <span class="plate-iran-tag">ایران</span>
+                  <input type="text" id="search-plate-city" inputmode="numeric" class="plate-digit-box w-city" placeholder="۶۷" maxlength="2" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label" for="select-filter-type">نوع مراجع:</label>
+            <select id="select-filter-type" class="select-control">
+              <option value="ALL">همه انواع مراجع</option>
+              <option value="ONLY_VEHICLE">فقط خودرویی</option>
+              <option value="ONLY_PEDESTRIAN">فقط عابر پیاده</option>
+              <option value="CAT_STAFF">پرسنل و اساتید</option>
+              <option value="CAT_GUEST">مهمان و ارباب‌رجوع</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label" for="select-filter-veh-category">دسته وسیله نقلیه:</label>
+            <select id="select-filter-veh-category" class="select-control">
+              <option value="ALL">همه دسته‌ها</option>
+              <option value="سواری">سواری</option>
+              <option value="وانت">وانت / باربری</option>
+              <option value="مینی‌بوس">مینی‌بوس</option>
+              <option value="اتوبوس">اتوبوس</option>
+              <option value="کامیونت">کامیونت / خاور</option>
+              <option value="کامیون">کامیون / تریلی</option>
+              <option value="ون">ون</option>
+              <option value="موتورسیکلت">موتورسیکلت</option>
+              <option value="سایر">سایر</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label" for="select-filter-guard">مأمور ثبت‌کننده:</label>
+            <select id="select-filter-guard" class="select-control">
+              <option value="ALL">همه مأموران</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label" for="select-status">وضعیت تردد:</label>
+            <select id="select-status" class="select-control">
+              <option value="ALL">همه وضعیت‌ها</option>
+              <option value="ACTIVE">حاضر در پردیس</option>
+              <option value="EXITED">خارج‌شده‌ها</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label">&nbsp;</label>
+            <button id="btn-export-csv" class="btn btn-csv btn-full-width" title="دریافت گزارش کامل سازگار با اکسل (شامل کلیه رکوردهای فیلترشده)">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+              <span>خروجی اکسل</span>
+            </button>
+          </div>
+
+          <div class="filter-item">
+            <label class="filter-label">&nbsp;</label>
+            <button id="btn-reset-filters" class="btn btn-reset btn-full-width" title="پاکسازی همه فیلترها">
+              <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              <span>ریست فیلترها</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- کانتینر جدول و کارت‌ها همراه با نوار صفحه‌بندی -->
+      <section class="table-container">
+        <div id="table-loading" class="loading-overlay hidden">
+          <svg class="svg-icon" style="margin-left:0.5rem; animation: spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+          <span>در حال بارگذاری اطلاعات...</span>
         </div>
 
-        <div class="filter-item">
-          <label class="filter-label" for="select-filter-veh-category">دسته وسیله نقلیه:</label>
-          <select id="select-filter-veh-category" class="select-control">
-            <option value="ALL">همه دسته‌ها</option>
-            <option value="سواری">سواری</option>
-            <option value="وانت">وانت / باربری</option>
-            <option value="مینی‌بوس">مینی‌بوس</option>
-            <option value="اتوبوس">اتوبوس</option>
-            <option value="کامیونت">کامیونت / خاور</option>
-            <option value="کامیون">کامیون / تریلی</option>
-            <option value="ون">ون</option>
-            <option value="موتورسیکلت">موتورسیکلت</option>
-            <option value="سایر">سایر</option>
-          </select>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="text-center w-12">#</th>
+              <th>نوع مراجع</th>
+              <th>پلاک / تردد</th>
+              <th>نام و نام خانوادگی</th>
+              <th>وسیله نقلیه</th>
+              <th>زمان ورود</th>
+              <th>زمان خروج</th>
+              <th>علت مراجعه و مقصد</th>
+              <th>مأمور ورود</th>
+              <th>مأمور خروج</th>
+              <th>وضعیت</th>
+              <th class="text-center">عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="records-tbody"></tbody>
+        </table>
+
+        <div id="table-empty-state" class="empty-state hidden">
+          <svg class="svg-icon empty-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p class="empty-title">هیچ تردد ثبت‌شده‌ای با این مشخصات یافت نشد</p>
+          <p class="empty-subtitle">می‌توانید فیلترها را ریست کنید یا تردد جدیدی ثبت فرمایید.</p>
         </div>
 
-        <div class="filter-item">
-          <label class="filter-label" for="select-filter-guard">مأمور ثبت‌کننده:</label>
-          <select id="select-filter-guard" class="select-control">
-            <option value="ALL">همه مأموران</option>
-          </select>
-        </div>
+        <!-- نوار صفحه‌بندی استاندارد (Pagination Bar) -->
+        <div id="pagination-container" class="pagination-bar hidden">
+          <div class="pagination-info">
+            <span>نمایش رکوردهای</span>
+            <strong id="pg-range">۰ - ۰</strong>
+            <span>از مجموع</span>
+            <strong id="pg-total">۰</strong>
+            <span>مورد</span>
+          </div>
 
-        <div class="filter-item">
-          <label class="filter-label" for="select-status">وضعیت تردد:</label>
-          <select id="select-status" class="select-control">
-            <option value="ALL">همه وضعیت‌ها</option>
-            <option value="ACTIVE">حاضر در پردیس</option>
-            <option value="EXITED">خارج‌شده‌ها</option>
-          </select>
+          <div class="pagination-controls-group">
+            <div id="pg-buttons-container" class="pagination-nav-buttons"></div>
+            
+            <div class="pagination-size-box">
+              <label for="pg-size-select">نمایش در صفحه:</label>
+              <select id="pg-size-select" class="select-control pg-select">
+                <option value="15">۱۵</option>
+                <option value="25" selected>۲۵</option>
+                <option value="50">۵۰</option>
+                <option value="100">۱۰۰</option>
+              </select>
+            </div>
+          </div>
         </div>
+      </section>
+    </main>
 
-        <div class="filter-item">
-          <label class="filter-label">&nbsp;</label>
-          <button id="btn-export-csv" class="btn btn-csv btn-full-width" title="دریافت گزارش سازگار با اکسل">
-            <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-            <span>خروجی اکسل</span>
-          </button>
+    <!-- ستون یادداشت‌های چسبان (در دسکتاپ: سمت چپ صفحه) -->
+    <aside id="sticky-notes-sidebar" class="sticky-notes-sidebar">
+      <div class="sn-sidebar-header">
+        <div class="sn-header-title">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>یادداشت‌های نگهبانی</span>
         </div>
-
-        <div class="filter-item">
-          <label class="filter-label">&nbsp;</label>
-          <button id="btn-reset-filters" class="btn btn-reset btn-full-width" title="پاکسازی همه فیلترها">
-            <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-            <span>ریست فیلترها</span>
-          </button>
-        </div>
+        <button type="button" id="btn-add-note-desktop" class="btn btn-primary btn-sn-add" title="افزودن یادداشت جدید">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>یادداشت جدید</span>
+        </button>
       </div>
-    </section>
 
-    <!-- کانتینر جدول و کارت‌ها -->
-    <section class="table-container">
-      <div id="table-loading" class="loading-overlay hidden">
-        <svg class="svg-icon" style="margin-left:0.5rem; animation: spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
-        <span>در حال بارگذاری اطلاعات...</span>
-      </div>
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th class="text-center w-12">#</th>
-            <th>نوع مراجع</th>
-            <th>پلاک / تردد</th>
-            <th>نام و نام خانوادگی</th>
-            <th>وسیله نقلیه</th>
-            <th>زمان ورود</th>
-            <th>زمان خروج</th>
-            <th>علت مراجعه و مقصد</th>
-            <th>مأمور ورود</th>
-            <th>مأمور خروج</th>
-            <th>وضعیت</th>
-            <th class="text-center">عملیات</th>
-          </tr>
-        </thead>
-        <tbody id="records-tbody"></tbody>
-      </table>
+      <div id="sticky-notes-list-desktop" class="sticky-notes-list"></div>
+    </aside>
+  </div>
 
-      <div id="table-empty-state" class="empty-state hidden">
-        <svg class="svg-icon empty-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <p class="empty-title">هیچ تردد ثبت‌شده‌ای با این مشخصات یافت نشد</p>
-        <p class="empty-subtitle">می‌توانید فیلترها را ریست کنید یا تردد جدیدی ثبت فرمایید.</p>
+  <!-- کشوی تمام صفحه یادداشت‌ها برای سایز موبایل -->
+  <div id="mobile-notes-drawer" class="mobile-drawer-backdrop hidden">
+    <div class="mobile-drawer-panel">
+      <div class="mobile-drawer-header">
+        <div style="display:flex; align-items:center; gap:0.45rem;">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span style="font-weight:800; font-size:0.95rem;">یادداشت‌ها و هماهنگی‌های انتظامات</span>
+        </div>
+        <button type="button" id="btn-close-notes-mobile" class="modal-close">&times;</button>
       </div>
-    </section>
-  </main>
+      <div class="mobile-drawer-actions">
+        <button type="button" id="btn-add-note-mobile" class="btn btn-primary btn-full-width">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>ایجاد یادداشت جدید</span>
+        </button>
+      </div>
+      <div id="sticky-notes-list-mobile" class="sticky-notes-list mobile-sn-list"></div>
+    </div>
+  </div>
+
+  <!-- پنجره هشدار و یادآوری تمام‌صفحه با بلور سنگین (Blur Alert Modal) -->
+  <div id="modal-note-alert" class="note-alert-backdrop hidden">
+    <div class="note-alert-card">
+      <div class="alert-pulse-icon">
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <span class="note-alert-badge">یادآوری مهم شیفت و مأموریت</span>
+      <h3 class="note-alert-author" id="alert-note-author">ثبت شده توسط: مأمور انتظامات</h3>
+      <div class="note-alert-box">
+        <p id="alert-note-content">متن یادآوری اینجا نمایش داده می‌شود...</p>
+      </div>
+      <div class="note-alert-time-tag">
+        <span>زمان مقرر:</span>
+        <strong id="alert-note-time">--</strong>
+      </div>
+      <div class="note-alert-actions">
+        <div class="snooze-buttons-group">
+          <button type="button" id="btn-alert-snooze-5" class="btn btn-secondary">۵ دقیقه بعد</button>
+          <button type="button" id="btn-alert-snooze-15" class="btn btn-secondary">۱۵ دقیقه بعد</button>
+        </div>
+        <button type="button" id="btn-alert-dismiss" class="btn btn-emerald btn-full-width" style="margin-top:0.4rem;">
+          متوجه شدم (دیگر یادآوری نکن)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- مودال فرم ایجاد/ویرایش یادداشت چسبان -->
+  <div id="modal-sticky-note-form" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <span class="modal-title" id="sn-modal-title">ثبت یادداشت چسبان جدید</span>
+        <button class="modal-close" data-close="modal-sticky-note-form">&times;</button>
+      </div>
+      <form id="form-sticky-note" class="modal-form">
+        <input type="hidden" id="sn-form-id" />
+        <div id="sn-form-error" class="form-error hidden"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="sn-form-author">نام نویسنده یا مأمور شیفت:</label>
+          <input type="text" id="sn-form-author" class="form-control" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="sn-form-content">متن پیام یا هماهنگی:</label>
+          <textarea id="sn-form-content" class="form-control" rows="4" placeholder="مثال: خودروی ۲۰۶ سفید مجوز ورود به پارکینگ اساتید دارد..." required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">رنگ یادداشت (تم‌های ملایم):</label>
+          <div class="sn-color-picker-group">
+            <label class="color-swatch-item">
+              <input type="radio" name="sn-color" value="yellow" checked />
+              <span class="color-circle cc-yellow" title="کهربایی ملایم"></span>
+            </label>
+            <label class="color-swatch-item">
+              <input type="radio" name="sn-color" value="green" />
+              <span class="color-circle cc-green" title="سبز نعنایی"></span>
+            </label>
+            <label class="color-swatch-item">
+              <input type="radio" name="sn-color" value="blue" />
+              <span class="color-circle cc-blue" title="آبی ملایم"></span>
+            </label>
+            <label class="color-swatch-item">
+              <input type="radio" name="sn-color" value="rose" />
+              <span class="color-circle cc-rose" title="صورتی مات"></span>
+            </label>
+            <label class="color-swatch-item">
+              <input type="radio" name="sn-color" value="purple" />
+              <span class="color-circle cc-purple" title="یاسی محو"></span>
+            </label>
+            <label class="color-swatch-item">
+              <input type="radio" name="sn-color" value="slate" />
+              <span class="color-circle cc-slate" title="طوسی سرد"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="reminder-toggle-section">
+          <label class="checkbox-label">
+            <input type="checkbox" id="sn-enable-reminder" />
+            <span style="font-weight:700;">فعال‌سازی هشدار و یادآوری هوشمند</span>
+          </label>
+
+          <div id="sn-reminder-fields" class="form-row-2 hidden" style="margin-top:0.6rem;">
+            <div class="form-group">
+              <label class="form-label" for="sn-reminder-date">تاریخ یادآوری:</label>
+              <input type="text" id="sn-reminder-date" class="form-control text-center" placeholder="1405/01/01" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="sn-reminder-time">ساعت یادآوری:</label>
+              <input type="text" id="sn-reminder-time" class="form-control text-center" placeholder="14:30" maxlength="5" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close="modal-sticky-note-form">انصراف</button>
+          <button type="submit" class="btn btn-primary">ذخیره یادداشت</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- دکمه شناور ثبت تردد برای موبایل -->
   <button id="btn-mobile-fab-entry" class="mobile-fab" aria-label="ثبت تردد جدید">
@@ -412,7 +585,7 @@
     </div>
   </div>
 
-  <!-- ۳. ثبت ورود با سیستم هوشمند حدس و تکمیل خودکار -->
+  <!-- ۳. ثبت ورود با سیستم هوشمند -->
   <div id="modal-entry" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -425,7 +598,6 @@
       <form id="form-new-entry" class="modal-form">
         <div id="entry-error-msg" class="form-error hidden"></div>
         
-        <!-- بنر وضعیت تکمیل خودکار به همراه دکمه پاکسازی / انصراف -->
         <div id="autofill-indicator" class="autofill-banner hidden">
           <div class="autofill-text">
             <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -939,6 +1111,7 @@
   <script src="export-utils.js"></script>
   <script src="db.js"></script>
   <script src="smart-suggest.js"></script>
+  <script src="sticky-notes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
