@@ -1,6 +1,7 @@
 /**
  * app.js
  * کنترلر اصلی سامانه ثبت و کنترل تردد انتظامات و حراست
+ * مجهز به سیستم صفحه‌بندی هوشمند، فیلتر جامع، خروجی داده‌ها و مدیریت یادداشت‌های چسبان
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -84,7 +85,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let currentDate = (window.Jalali && Jalali.formatJalaliDate) ? Jalali.formatJalaliDate(new Date()) : '1405/01/01';
   let entryTrafficType = 'VEHICLE';
-  let currentFilteredRecords = [];
+  
+  // متغیرهای سیستم صفحه‌بندی و فیلتر جامع
+  let currentFilteredRecords = []; // حاوی تمام رکوردهای منطبق بر فیلترها (جهت خروجی اکسل کامل)
+  let currentPage = 1;
+  let pageSize = 25;
 
   const headerUserName = document.getElementById('header-user-name');
   const headerUserRole = document.getElementById('header-user-role');
@@ -104,6 +109,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const recordsTbody = document.getElementById('records-tbody');
   const tableEmptyState = document.getElementById('table-empty-state');
   const tableLoading = document.getElementById('table-loading');
+
+  // عناصر بخش صفحه‌بندی
+  const paginationContainer = document.getElementById('pagination-container');
+  const pgRangeEl = document.getElementById('pg-range');
+  const pgTotalEl = document.getElementById('pg-total');
+  const pgButtonsContainer = document.getElementById('pg-buttons-container');
+  const pgSizeSelect = document.getElementById('pg-size-select');
 
   const selectFilterGuard = document.getElementById('select-filter-guard');
   const selectDatePreset = document.getElementById('select-date-preset');
@@ -442,11 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnToggleVehicle?.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
   btnTogglePedestrian?.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
 
-  // =========================================================================
-  // اعمال مشخصات کاندیدای هوشمند بر فرم ورود
-  // =========================================================================
   function applyCandidateToForm(candidate) {
-    // ذخیره وضعیت قبلی جهت امکان بازگشت (Undo)
     SmartSuggest.lastAppliedBackup = {
       trafficType: entryTrafficType,
       p1: p1.value,
@@ -516,9 +524,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     showToast('info', 'اطلاعات فرم به حالت قبل بازگردانی شد.');
   });
 
-  // =========================================================================
-  // شنودگرهای حدس هوشمند پلاک و نام
-  // =========================================================================
   async function triggerSmartPlateSearch() {
     if (!SmartSuggest) return;
     const p1Val = p1.value.trim();
@@ -574,7 +579,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // پشتیبانی از کلیدهای Enter و Esc در فیلد نام
   inputPersonName?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && SmartSuggest?.activePopupEl && SmartSuggest.currentMatches.length > 0) {
       e.preventDefault();
@@ -583,14 +587,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // فیلترهای جستجو
-  PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => loadData());
+  PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => { currentPage = 1; loadData(); });
   searchPlateLtr?.addEventListener('change', (e) => {
     PlateUtils.updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
     searchPlateP2?.focus();
+    currentPage = 1;
     loadData();
   });
-  PlateUtils.setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => loadData());
-  PlateUtils.setupPlateInputAutoConvert(searchPlateCity, 2, null, () => loadData());
+  PlateUtils.setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => { currentPage = 1; loadData(); });
+  PlateUtils.setupPlateInputAutoConvert(searchPlateCity, 2, null, () => { currentPage = 1; loadData(); });
 
   PlateUtils.setupPlateInputAutoConvert(editP1, 2, editLtr);
   editLtr?.addEventListener('change', (e) => {
@@ -607,6 +612,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       users.map((u) => `<option value="${u.name}">${u.name} (${u.role === 'ADMIN' ? 'مدیر' : u.shiftName})</option>`).join('');
   }
 
+  // رویداد تغییر تعداد نمایش در صفحه
+  pgSizeSelect?.addEventListener('change', (e) => {
+    pageSize = Number(e.target.value) || 25;
+    currentPage = 1;
+    renderRecords();
+  });
+
   async function loadData() {
     if (displayDateEl) {
       const human = (window.Jalali && Jalali.getHumanReadable) ? Jalali.getHumanReadable(currentDate) : currentDate;
@@ -616,6 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (DB && !DB.hasPermission('read')) {
       recordsTbody.innerHTML = '';
       tableEmptyState?.classList.add('hidden');
+      paginationContainer?.classList.add('hidden');
       return;
     }
 
@@ -719,6 +732,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sP2) filtered = filtered.filter((r) => toLatin(r.plate_part2 || '').includes(sP2));
     if (sCity) filtered = filtered.filter((r) => toLatin(r.plate_city || '').includes(sCity));
 
+    // ذخیره کل مجموعه فیلترشده جهت استخراج خروجی اکسل کامل
     currentFilteredRecords = filtered;
 
     if (statActiveCount) statActiveCount.textContent = toPersian(allRecords.filter((r) => r.status === 'ACTIVE').length);
@@ -726,18 +740,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (statStaffCount) statStaffCount.textContent = toPersian(filtered.filter((r) => r.person_category === 'STAFF' || r.person_category === 'FACULTY').length);
     if (statExitedCount) statExitedCount.textContent = toPersian(filtered.filter((r) => r.status === 'EXITED').length);
 
+    renderRecords();
+  }
+
+  /**
+   * رندر داده‌ها با منطق دقیق صفحه‌بندی
+   */
+  function renderRecords() {
     recordsTbody.innerHTML = '';
-    if (filtered.length === 0) {
+    const totalItems = currentFilteredRecords.length;
+
+    if (totalItems === 0) {
       tableEmptyState?.classList.remove('hidden');
+      paginationContainer?.classList.add('hidden');
       return;
     }
     tableEmptyState?.classList.add('hidden');
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+    const pageRecords = currentFilteredRecords.slice(startIndex, endIndex);
 
     const isMobile = window.innerWidth <= 820;
     const canUpdate = DB ? DB.hasPermission('update') : true;
     const canDelete = DB ? DB.hasPermission('delete') : true;
 
-    filtered.forEach((r, idx) => {
+    pageRecords.forEach((r, idx) => {
+      const globalIndex = startIndex + idx + 1; // شماره ردیف پیوسته در تمام صفحات
       const tr = document.createElement('tr');
       const isActive = r.status === 'ACTIVE';
       const isPedestrian = r.traffic_type === 'PEDESTRIAN';
@@ -747,7 +780,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const exitOfficerName = r.exit_guard_name || null;
       const exitOfficerShift = r.exit_guard_shift || '';
 
-      // جایگزینی آیکون عابر پیاده با walking.svg
       const plateOrPedestrianHtml = isPedestrian
         ? '<span class="badge-pedestrian"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>'
         : PlateUtils.renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
@@ -782,7 +814,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="mc-card">
               <div class="mc-header">
                 <div class="mc-header-right">
-                  <span class="mc-index">#${toPersian(idx + 1)}</span>
+                  <span class="mc-index">#${toPersian(globalIndex)}</span>
                   ${PlateUtils.renderPersonCategoryBadge(r.person_category)}
                 </div>
                 <div>${statusBadgeHtml}</div>
@@ -847,7 +879,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           `;
 
         tr.innerHTML = `
-          <td class="text-center" style="color:var(--text-faint); font-weight:700; font-size:0.75rem;">${toPersian(idx + 1)}</td>
+          <td class="text-center" style="color:var(--text-faint); font-weight:700; font-size:0.75rem;">${toPersian(globalIndex)}</td>
           <td>${PlateUtils.renderPersonCategoryBadge(r.person_category)}</td>
           <td>${plateOrPedestrianHtml}</td>
           <td style="font-weight:700; color:var(--text-main);">${r.person_name}</td>
@@ -893,12 +925,91 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('[data-action="delete"]').forEach((btn) => {
       btn.addEventListener('click', (e) => openDeleteModal(Number(e.currentTarget.getAttribute('data-id'))));
     });
+
+    // رندر بخش دکمه‌های صفحه‌بندی
+    renderPaginationUI(totalItems, totalPages, startIndex, endIndex);
+  }
+
+  /**
+   * رندر نوار صفحه‌بندی با طراحی استاندارد و دکمه‌های چندگانه
+   */
+  function renderPaginationUI(totalItems, totalPages, startIndex, endIndex) {
+    if (!paginationContainer) return;
+    paginationContainer.classList.remove('hidden');
+
+    if (pgRangeEl) pgRangeEl.textContent = `${toPersian(startIndex + 1)} تا ${toPersian(endIndex)}`;
+    if (pgTotalEl) pgTotalEl.textContent = toPersian(totalItems);
+
+    if (!pgButtonsContainer) return;
+    pgButtonsContainer.innerHTML = '';
+
+    // دکمه صفحه قبل
+    const prevBtn = document.createElement('button');
+    prevBtn.className = `btn-pg-nav ${currentPage === 1 ? 'disabled' : ''}`;
+    prevBtn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>';
+    prevBtn.title = 'صفحه قبل';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderRecords();
+      }
+    });
+    pgButtonsContainer.appendChild(prevBtn);
+
+    // تولید شماره صفحات با مدیریت فواصل (Ellipsis)
+    const pagesToShow = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pagesToShow.push(i);
+    } else {
+      pagesToShow.push(1);
+      if (currentPage > 3) pagesToShow.push('...');
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) {
+        if (!pagesToShow.includes(i)) pagesToShow.push(i);
+      }
+      if (currentPage < totalPages - 2) pagesToShow.push('...');
+      if (!pagesToShow.includes(totalPages)) pagesToShow.push(totalPages);
+    }
+
+    pagesToShow.forEach(p => {
+      if (p === '...') {
+        const span = document.createElement('span');
+        span.className = 'pg-ellipsis';
+        span.textContent = '...';
+        pgButtonsContainer.appendChild(span);
+      } else {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `btn-pg-num ${p === currentPage ? 'active' : ''}`;
+        pageBtn.textContent = toPersian(p);
+        pageBtn.addEventListener('click', () => {
+          currentPage = p;
+          renderRecords();
+        });
+        pgButtonsContainer.appendChild(pageBtn);
+      }
+    });
+
+    // دکمه صفحه بعد
+    const nextBtn = document.createElement('button');
+    nextBtn.className = `btn-pg-nav ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextBtn.innerHTML = '<svg class="svg-icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>';
+    nextBtn.title = 'صفحه بعد';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderRecords();
+      }
+    });
+    pgButtonsContainer.appendChild(nextBtn);
   }
 
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => loadData(), 200);
+    resizeTimer = setTimeout(() => renderRecords(), 200);
   });
 
   selectDatePreset?.addEventListener('change', (e) => {
@@ -906,25 +1017,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     dayStepperGroup?.classList.toggle('hidden', val !== 'TODAY');
     customDateContainer?.classList.toggle('hidden', val !== 'CUSTOM_DATE');
     if (val === 'TODAY' && window.Jalali) currentDate = Jalali.formatJalaliDate(new Date());
+    currentPage = 1;
     loadData();
   });
 
-  btnPrevDay?.addEventListener('click', () => { if (window.Jalali) currentDate = Jalali.shiftJalaliDate(currentDate, -1); loadData(); });
-  btnNextDay?.addEventListener('click', () => { if (window.Jalali) currentDate = Jalali.shiftJalaliDate(currentDate, 1); loadData(); });
-  inputCustomDate?.addEventListener('input', () => loadData());
+  btnPrevDay?.addEventListener('click', () => { if (window.Jalali) currentDate = Jalali.shiftJalaliDate(currentDate, -1); currentPage = 1; loadData(); });
+  btnNextDay?.addEventListener('click', () => { if (window.Jalali) currentDate = Jalali.shiftJalaliDate(currentDate, 1); currentPage = 1; loadData(); });
+  inputCustomDate?.addEventListener('input', () => { currentPage = 1; loadData(); });
 
   selectTimeFilter?.addEventListener('change', (e) => {
     customTimeRange?.classList.toggle('hidden', e.target.value !== 'CUSTOM');
+    currentPage = 1;
     loadData();
   });
-  timeFrom?.addEventListener('input', () => loadData());
-  timeTo?.addEventListener('input', () => loadData());
+  timeFrom?.addEventListener('input', () => { currentPage = 1; loadData(); });
+  timeTo?.addEventListener('input', () => { currentPage = 1; loadData(); });
 
-  inputSearch?.addEventListener('input', () => loadData());
-  selectFilterType?.addEventListener('change', () => loadData());
-  selectFilterVehCategory?.addEventListener('change', () => loadData());
-  selectFilterGuard?.addEventListener('change', () => loadData());
-  selectStatus?.addEventListener('change', () => loadData());
+  inputSearch?.addEventListener('input', () => { currentPage = 1; loadData(); });
+  selectFilterType?.addEventListener('change', () => { currentPage = 1; loadData(); });
+  selectFilterVehCategory?.addEventListener('change', () => { currentPage = 1; loadData(); });
+  selectFilterGuard?.addEventListener('change', () => { currentPage = 1; loadData(); });
+  selectStatus?.addEventListener('change', () => { currentPage = 1; loadData(); });
 
   btnResetFilters?.addEventListener('click', () => {
     selectDatePreset.value = 'ALL';
@@ -948,10 +1061,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectStatus.value = 'ALL';
     PlateUtils.updatePlateTheme(searchPlateContainer, 'ب');
 
+    currentPage = 1;
     loadData();
     showToast('info', 'فیلترها ریست شدند.');
   });
 
+  // دانلود خروجی اکسل کامل (شامل تمام رکوردهای تطبیق‌یافته، نه فقط صفحه جاری)
   btnExportCsv?.addEventListener('click', () => {
     if (DB && !DB.hasPermission('read')) {
       showToast('error', 'شما مجوز مشاهده و دریافت خروجی را ندارید.');
@@ -961,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       if (window.ExportUtils) {
         const result = ExportUtils.exportRecordsToCsv(currentFilteredRecords);
-        showToast('success', `فایل اکسل (${toPersian(result.count)} رکورد) دانلود شد.`);
+        showToast('success', `فایل اکسل با موفقیت شامل تمامی (${toPersian(result.count)}) رکورد منطبق دانلود شد.`);
       }
     } catch (err) {
       showToast('error', err.message);
@@ -1060,6 +1175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       SmartSuggest?.hideSuggestionBox();
       modalEntry.classList.add('hidden');
       showToast('success', `ورود (${person}) با موفقیت ثبت شد.`);
+      currentPage = 1;
       await loadData();
     } catch (ex) {
       err.textContent = ex.message;
@@ -1526,7 +1642,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const records = await DB.getRecords();
     const users = await DB.getUsers();
     const profiles = DB.getLocalProfiles();
-    const backupData = { records, users, profiles, export_date: currentDate, timestamp: new Date().toISOString() };
+    const notes = DB.getLocalNotes ? DB.getLocalNotes() : [];
+    const backupData = { records, users, profiles, notes, export_date: currentDate, timestamp: new Date().toISOString() };
 
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
     const a = document.createElement('a');
@@ -1564,5 +1681,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       await populateGuardsFilterDropdown();
       await loadData();
     }
+  }
+
+  // راه‌اندازی ماژول یادداشت‌های چسبان (Sticky Notes)
+  if (window.StickyNotes) {
+    window.StickyNotes.init();
   }
 });
