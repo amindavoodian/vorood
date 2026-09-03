@@ -71,9 +71,8 @@
     </div>
   </header>
 
-  <!-- کانتینر چیدمان اصلی (محتوا + ستون یادداشت‌ها در دسکتاپ) -->
+  <!-- کانتینر چیدمان اصلی -->
   <div class="app-layout-wrapper">
-    <!-- محتوای اصلی -->
     <main class="main-content">
       <div id="no-read-permission-banner" class="permission-alert-banner hidden">
         <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -135,7 +134,7 @@
         </div>
       </section>
 
-      <!-- ضامن فیلترها در موبایل -->
+      <!-- فیلترها -->
       <div class="mobile-filter-toggle-container">
         <button id="btn-toggle-filters-mobile" class="btn btn-secondary mobile-filter-toggle-btn">
           <div style="display:flex; align-items:center; gap:0.4rem;">
@@ -146,7 +145,6 @@
         </button>
       </div>
 
-      <!-- پنل فیلترها -->
       <section id="main-filter-panel" class="filter-panel">
         <div class="filter-top-row">
           <div class="date-presets-group">
@@ -169,7 +167,7 @@
             </div>
 
             <div id="custom-date-container" class="hidden">
-              <input type="text" id="input-custom-date" inputmode="numeric" class="form-control text-center custom-date-input" placeholder="1405/01/01" />
+              <input type="text" id="input-custom-date" class="form-control text-center custom-date-input" placeholder="انتخاب تاریخ" />
             </div>
           </div>
 
@@ -186,9 +184,9 @@
             </div>
 
             <div id="custom-time-range" class="time-range-group hidden">
-              <input type="text" id="time-from" inputmode="numeric" class="form-control time-range-input" placeholder="00:00" maxlength="5" />
+              <input type="text" id="time-from" class="form-control time-range-input" placeholder="از ساعت" maxlength="5" />
               <span class="range-separator">تا</span>
-              <input type="text" id="time-to" inputmode="numeric" class="form-control time-range-input" placeholder="23:59" maxlength="5" />
+              <input type="text" id="time-to" class="form-control time-range-input" placeholder="تا ساعت" maxlength="5" />
             </div>
           </div>
         </div>
@@ -297,7 +295,7 @@
 
           <div class="filter-item">
             <label class="filter-label">&nbsp;</label>
-            <button id="btn-export-csv" class="btn btn-csv btn-full-width" title="دریافت گزارش کامل سازگار با اکسل (شامل کلیه رکوردهای فیلترشده)">
+            <button id="btn-export-csv" class="btn btn-csv btn-full-width" title="دریافت گزارش اکسل">
               <svg class="svg-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
               <span>خروجی اکسل</span>
             </button>
@@ -313,7 +311,7 @@
         </div>
       </section>
 
-      <!-- کانتینر جدول و کارت‌ها همراه با نوار صفحه‌بندی -->
+      <!-- کانتینر جدول داده‌ها -->
       <section class="table-container">
         <div id="table-loading" class="loading-overlay hidden">
           <svg class="svg-icon" style="margin-left:0.5rem; animation: spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
@@ -346,7 +344,7 @@
           <p class="empty-subtitle">می‌توانید فیلترها را ریست کنید یا تردد جدیدی ثبت فرمایید.</p>
         </div>
 
-        <!-- نوار صفحه‌بندی استاندارد (Pagination Bar) -->
+        <!-- نوار صفحه‌بندی هوشمند -->
         <div id="pagination-container" class="pagination-bar hidden">
           <div class="pagination-info">
             <span>نمایش رکوردهای</span>
@@ -373,7 +371,7 @@
       </section>
     </main>
 
-    <!-- ستون یادداشت‌های چسبان (در دسکتاپ: سمت چپ صفحه) -->
+    <!-- ستون یادداشت‌ها در دسکتاپ -->
     <aside id="sticky-notes-sidebar" class="sticky-notes-sidebar">
       <div class="sn-sidebar-header">
         <div class="sn-header-title">
@@ -390,7 +388,7 @@
     </aside>
   </div>
 
-  <!-- کشوی تمام صفحه یادداشت‌ها برای سایز موبایل -->
+  <!-- کشوی یادداشت‌ها در موبایل -->
   <div id="mobile-notes-drawer" class="mobile-drawer-backdrop hidden">
     <div class="mobile-drawer-panel">
       <div class="mobile-drawer-header">
@@ -410,7 +408,7 @@
     </div>
   </div>
 
-  <!-- پنجره هشدار و یادآوری تمام‌صفحه با بلور سنگین (Blur Alert Modal) -->
+  <!-- پنجره هشدار سررسید یادداشت (Blur Modal) -->
   <div id="modal-note-alert" class="note-alert-backdrop hidden">
     <div class="note-alert-card">
       <div class="alert-pulse-icon">
@@ -419,7 +417,7 @@
       <span class="note-alert-badge">یادآوری مهم شیفت و مأموریت</span>
       <h3 class="note-alert-author" id="alert-note-author">ثبت شده توسط: مأمور انتظامات</h3>
       <div class="note-alert-box">
-        <p id="alert-note-content">متن یادآوری اینجا نمایش داده می‌شود...</p>
+        <p id="alert-note-content">متن یادآوری...</p>
       </div>
       <div class="note-alert-time-tag">
         <span>زمان مقرر:</span>
@@ -431,13 +429,13 @@
           <button type="button" id="btn-alert-snooze-15" class="btn btn-secondary">۱۵ دقیقه بعد</button>
         </div>
         <button type="button" id="btn-alert-dismiss" class="btn btn-emerald btn-full-width" style="margin-top:0.4rem;">
-          متوجه شدم (دیگر یادآوری نکن)
+          متوجه شدم (خاتمه هشدار)
         </button>
       </div>
     </div>
   </div>
 
-  <!-- مودال فرم ایجاد/ویرایش یادداشت چسبان -->
+  <!-- فرم ایجاد/ویرایش یادداشت -->
   <div id="modal-sticky-note-form" class="modal-backdrop hidden">
     <div class="modal-card" style="max-width: 440px;">
       <div class="modal-header">
@@ -455,7 +453,7 @@
 
         <div class="form-group">
           <label class="form-label" for="sn-form-content">متن پیام یا هماهنگی:</label>
-          <textarea id="sn-form-content" class="form-control" rows="4" placeholder="مثال: خودروی ۲۰۶ سفید مجوز ورود به پارکینگ اساتید دارد..." required></textarea>
+          <textarea id="sn-form-content" class="form-control" rows="4" placeholder="مثال: هماهنگی جهت ورود خودروی مهمان دانشگاه..." required></textarea>
         </div>
 
         <div class="form-group">
@@ -497,11 +495,11 @@
           <div id="sn-reminder-fields" class="form-row-2 hidden" style="margin-top:0.6rem;">
             <div class="form-group">
               <label class="form-label" for="sn-reminder-date">تاریخ یادآوری:</label>
-              <input type="text" id="sn-reminder-date" class="form-control text-center" placeholder="1405/01/01" />
+              <input type="text" id="sn-reminder-date" class="form-control text-center" placeholder="انتخاب تاریخ" />
             </div>
             <div class="form-group">
               <label class="form-label" for="sn-reminder-time">ساعت یادآوری:</label>
-              <input type="text" id="sn-reminder-time" class="form-control text-center" placeholder="14:30" maxlength="5" />
+              <input type="text" id="sn-reminder-time" class="form-control text-center" placeholder="انتخاب ساعت" maxlength="5" />
             </div>
           </div>
         </div>
@@ -514,14 +512,14 @@
     </div>
   </div>
 
-  <!-- دکمه شناور ثبت تردد برای موبایل -->
+  <!-- دکمه شناور موبایل -->
   <button id="btn-mobile-fab-entry" class="mobile-fab" aria-label="ثبت تردد جدید">
     <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     <span>ثبت تردد جدید</span>
   </button>
 
   <!-- مودال‌ها -->
-  <!-- ۱. راه‌اندازی اولیه مدیر -->
+  <!-- ۱. راه‌اندازی ادمین -->
   <div id="modal-setup-admin" class="modal-backdrop hidden">
     <div class="modal-card" style="max-width: 440px;">
       <div class="modal-header modal-header-primary">
@@ -585,7 +583,7 @@
     </div>
   </div>
 
-  <!-- ۳. ثبت ورود با سیستم هوشمند -->
+  <!-- ۳. ثبت تردد جدید -->
   <div id="modal-entry" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -601,7 +599,7 @@
         <div id="autofill-indicator" class="autofill-banner hidden">
           <div class="autofill-text">
             <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span id="autofill-info-label">مشخصات مراجع از سوابق پیشین شناسایی و بارگذاری شد.</span>
+            <span id="autofill-info-label">مشخصات مراجع از سوابق پیشین شناسایی شد.</span>
           </div>
           <button type="button" id="btn-undo-autofill" class="btn-undo-link">انصراف و پاکسازی</button>
         </div>
@@ -632,7 +630,7 @@
         <div id="entry-plate-section" class="form-group">
           <div class="label-with-hint">
             <label class="form-label">شماره پلاک ملی:</label>
-            <span class="field-hint-micro">با وارد کردن هر رقم، سوابق پلاک جستجو و حدس زده می‌شود</span>
+            <span class="field-hint-micro">با وارد کردن هر رقم، سوابق پلاک جستجو می‌شود</span>
           </div>
           <div class="plate-wrapper">
             <div id="modal-plate-container" class="iran-plate-input plate-theme-white">
@@ -686,7 +684,7 @@
           <div class="form-group">
             <div class="label-with-hint">
               <label for="input-person-name" class="form-label">نام و نام خانوادگی:</label>
-              <span class="field-hint-micro">با تایپ حروف نام، حدس زده می‌شود</span>
+              <span class="field-hint-micro">با تایپ حروف، سوابق جستجو می‌شود</span>
             </div>
             <input type="text" id="input-person-name" class="form-control" placeholder="مثال: دکتر محمدی" required autocomplete="off" />
           </div>
@@ -731,14 +729,14 @@
           <div class="form-group">
             <label class="form-label" for="input-entry-date">تاریخ ورود:</label>
             <div class="input-with-action">
-              <input type="text" id="input-entry-date" inputmode="numeric" class="form-control" required />
+              <input type="text" id="input-entry-date" class="form-control" placeholder="انتخاب تاریخ" required />
               <button type="button" id="btn-entry-date-today" class="btn btn-secondary-sm">امروز</button>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="input-entry-time">ساعت ورود:</label>
             <div class="input-with-action">
-              <input type="text" id="input-entry-time" inputmode="numeric" class="form-control" maxlength="5" required />
+              <input type="text" id="input-entry-time" class="form-control" placeholder="انتخاب زمان" maxlength="5" required />
               <button type="button" id="btn-entry-time-now" class="btn btn-secondary-sm">الان</button>
             </div>
           </div>
@@ -781,14 +779,14 @@
           <div class="form-group">
             <label class="form-label" for="input-exit-date">تاریخ خروج:</label>
             <div class="input-with-action">
-              <input type="text" id="input-exit-date" inputmode="numeric" class="form-control" required />
+              <input type="text" id="input-exit-date" class="form-control" placeholder="انتخاب تاریخ" required />
               <button type="button" id="btn-exit-date-today" class="btn btn-secondary-sm">امروز</button>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label" for="input-exit-time">ساعت خروج:</label>
             <div class="input-with-action">
-              <input type="text" id="input-exit-time" inputmode="numeric" class="form-control" maxlength="5" required />
+              <input type="text" id="input-exit-time" class="form-control" placeholder="انتخاب زمان" maxlength="5" required />
               <button type="button" id="btn-exit-time-now" class="btn btn-secondary-sm">الان</button>
             </div>
           </div>
@@ -915,11 +913,11 @@
         <div class="form-row-2">
           <div class="form-group">
             <label class="form-label" for="edit-entry-date">تاریخ ورود:</label>
-            <input type="text" id="edit-entry-date" inputmode="numeric" class="form-control" required />
+            <input type="text" id="edit-entry-date" class="form-control" placeholder="انتخاب تاریخ" required />
           </div>
           <div class="form-group">
             <label class="form-label" for="edit-entry-time">ساعت ورود:</label>
-            <input type="text" id="edit-entry-time" inputmode="numeric" class="form-control" maxlength="5" required />
+            <input type="text" id="edit-entry-time" class="form-control" placeholder="انتخاب زمان" maxlength="5" required />
           </div>
         </div>
 
@@ -934,11 +932,11 @@
         <div id="edit-exit-fields" class="form-row-2 hidden">
           <div class="form-group">
             <label class="form-label" for="edit-exit-date">تاریخ خروج:</label>
-            <input type="text" id="edit-exit-date" inputmode="numeric" class="form-control" />
+            <input type="text" id="edit-exit-date" class="form-control" placeholder="انتخاب تاریخ" />
           </div>
           <div class="form-group">
             <label class="form-label" for="edit-exit-time">ساعت خروج:</label>
-            <input type="text" id="edit-exit-time" inputmode="numeric" class="form-control" maxlength="5" />
+            <input type="text" id="edit-exit-time" class="form-control" placeholder="انتخاب زمان" maxlength="5" />
           </div>
         </div>
 
@@ -955,7 +953,7 @@
     </div>
   </div>
 
-  <!-- ۶. تنظیمات و مدیریت کاربران -->
+  <!-- ۶. تنظیمات سیستم -->
   <div id="modal-settings" class="modal-backdrop hidden">
     <div class="modal-card modal-card-lg">
       <div class="modal-header">
@@ -1086,7 +1084,7 @@
     <div class="modal-card" style="max-width: 380px;">
       <div class="modal-header">
         <span class="modal-title" style="color:var(--rose);">
-          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
           حذف رکورد تردد
         </span>
         <button class="modal-close" data-close="modal-delete-confirm" aria-label="بستن">&times;</button>
@@ -1102,11 +1100,12 @@
     </div>
   </div>
 
-  <!-- کانتینر پیام‌های شناور (Toast) -->
+  <!-- کانتینر توست -->
   <div id="toast-container" class="toast-container"></div>
 
   <!-- لایه اسکریپت‌ها -->
   <script src="jalali.js"></script>
+  <script src="scroll-picker.js"></script>
   <script src="plate-utils.js"></script>
   <script src="export-utils.js"></script>
   <script src="db.js"></script>
