@@ -1,13 +1,13 @@
 /**
  * sticky-notes.js
- * ماژول پیشرفته مدیریت یادداشت‌های چسبان، سیستم هوشمند یادآور و پنجره هشدار بلور
+ * ماژول پیشرفته مدیریت یادداشت‌های چسبان، یادآور صوتی و پنجره هشدار سرتاسری
  */
 
 (function () {
   const toPersian = (v) => (window.Jalali && Jalali.toPersianDigits) ? Jalali.toPersianDigits(String(v ?? '')) : String(v ?? '');
   const toLatin = (v) => (window.Jalali && Jalali.toLatinDigits) ? Jalali.toLatinDigits(String(v ?? '')) : String(v ?? '');
 
-  // تبدیل مطمئن تاریخ شمسی به میلادی (با پشتیبانی از آرایه یا آبجکت خروجی)
+  // تبدیل تاریخ شمسی به میلادی به صورت کاملاً ایمن و تضمین‌شده
   function safeJalaliToGregorian(jDateStr, jTimeStr) {
     try {
       const cleanDate = toLatin(jDateStr || '').trim();
@@ -29,7 +29,7 @@
         }
       }
 
-      // الگوریتم محاسباتی بک‌آپ در صورت در دسترس نبودن تابع
+      // موتور پشتیبان در صورت عدم وجود تابع در لایبری
       if (!gY || !gM || !gD) {
         const g = jalaliFallbackConverter(jy, jm, jd);
         gY = g.gy; gM = g.gm; gD = g.gd;
@@ -114,7 +114,6 @@
       document.addEventListener('keydown', unlock, { once: true });
       document.addEventListener('touchstart', unlock, { once: true });
 
-      // درخواست مجوز نوتیفیکیشن مرورگر برای اطمینان مضاعف
       if ('Notification' in window && Notification.permission === 'default') {
         setTimeout(() => Notification.requestPermission(), 3000);
       }
@@ -141,7 +140,7 @@
       this.reminderDateInput = document.getElementById('sn-reminder-date');
       this.reminderTimeInput = document.getElementById('sn-reminder-time');
 
-      // اتصال فیلدهای یادآور به پیکر اسکرولی
+      // اتصال فیلدهای یادآور به پیکر چرخشی
       if (window.ScrollPicker) {
         ScrollPicker.attach(this.reminderDateInput, 'DATE');
         ScrollPicker.attach(this.reminderTimeInput, 'TIME');
@@ -161,7 +160,6 @@
 
       this.noteForm?.addEventListener('submit', (e) => this.handleSaveNote(e));
 
-      // پنجره هشدار سررسید یادداشت
       this.alertModal = document.getElementById('modal-note-alert');
       this.alertAuthorEl = document.getElementById('alert-note-author');
       this.alertContentEl = document.getElementById('alert-note-content');
@@ -171,10 +169,9 @@
       document.getElementById('btn-alert-snooze-15')?.addEventListener('click', () => this.handleSnooze(15));
       document.getElementById('btn-alert-dismiss')?.addEventListener('click', () => this.handleDismiss());
 
-      // اگر کاربر روی پس‌زمینه مودال آلرت کلیک کرد، مقدار فعال پاک شود تا مانع هشدارهای بعدی نشود
       this.alertModal?.addEventListener('click', (e) => {
         if (e.target === this.alertModal) {
-          this.handleSnooze(5); // تعویق خودکار ۵ دقیقه‌ای به جای سوزاندن هشدار
+          this.handleSnooze(5);
         }
       });
     },
@@ -220,6 +217,7 @@
       const colorCls = this.colorThemes[note.color]?.bgClass || 'sn-color-yellow';
       const hasReminder = !!note.reminderDatetime && !note.isDismissed;
       const reminderDisplay = note.reminderJalali ? toPersian(note.reminderJalali) : '';
+      const isOverdue = note.reminderDatetime && new Date(note.reminderDatetime) <= new Date();
 
       return `
         <div class="sticky-note-card ${colorCls}" data-note-id="${note.id}">
@@ -233,7 +231,7 @@
                 <svg class="svg-icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
               <button type="button" class="btn-sn-action btn-sn-delete" data-delete="${note.id}" title="حذف">
-                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
               </button>
             </div>
           </div>
@@ -242,7 +240,7 @@
           </div>
           <div class="sn-card-footer">
             ${hasReminder ? `
-              <div class="sn-reminder-badge ${new Date(note.reminderDatetime) <= new Date() ? 'sn-reminder-overdue' : ''}" title="یادآوری فعال">
+              <div class="sn-reminder-badge ${isOverdue ? 'sn-reminder-overdue' : ''}" title="یادآوری فعال">
                 <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 <span>${reminderDisplay}</span>
               </div>
@@ -374,9 +372,8 @@
 
     startReminderChecker() {
       if (this.alertCheckInterval) clearInterval(this.alertCheckInterval);
-      // بررسی هر ۵ ثانیه
+      
       this.alertCheckInterval = setInterval(async () => {
-        // تازه‌سازی یادداشت‌ها جهت همگام‌سازی ابری و محلی
         try {
           const cloudNotes = window.DB ? (await window.DB.getStickyNotes()) : [];
           if (cloudNotes && cloudNotes.length > 0) {
@@ -390,7 +387,7 @@
     },
 
     checkPendingReminders() {
-      if (this.activeAlertNote) return; // هشداری روی صفحه باز است
+      if (this.activeAlertNote) return;
       const now = new Date();
 
       for (const note of this.notes) {
@@ -418,7 +415,6 @@
 
       this.playChimeSound();
 
-      // اعلان سیستم عامل / مرورگر
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
           new Notification('یادآوری نگهبانی و حراست', {
@@ -438,11 +434,10 @@
         const ctx = this.audioCtx || new AudioContext();
         if (ctx.state === 'suspended') ctx.resume();
 
-        // ملودی توجه سه‌گانه رسا و حرفه‌ای
         const melody = [
-          { f: 587.33, d: 0.14 }, // D5
-          { f: 880.00, d: 0.16 }, // A5
-          { f: 1174.66, d: 0.40 } // D6
+          { f: 587.33, d: 0.14 },
+          { f: 880.00, d: 0.16 },
+          { f: 1174.66, d: 0.40 }
         ];
 
         let start = ctx.currentTime + 0.05;
@@ -463,7 +458,7 @@
           start += item.d + 0.06;
         });
       } catch (e) {
-        console.warn('پخش صدا امکان‌پذیر نبود:', e);
+        console.warn('عدم توانایی پخش صدا:', e);
       }
     },
 
