@@ -17,6 +17,9 @@
 </head>
 <body>
 
+  <!-- نوار لودینگ مینیمال بالای صفحه جهت نمایش فعالیت پس‌زمینه دیتابیس -->
+  <div id="app-loading-bar" class="app-loading-bar"></div>
+
   <!-- هدر اصلی برنامه -->
   <header class="app-header">
     <div class="header-container">
@@ -25,7 +28,7 @@
       </div>
 
       <div class="header-actions">
-        <!-- نشانگر وضعیت دیتابیس -->
+        <!-- نشانگر وضعیت دیتابیس همراه با انیمیشن در زمان تبادل داده -->
         <div id="db-status-indicator" class="db-status-badge is-local" title="وضعیت ارتباط پایگاه داده">
           <span class="status-dot"></span>
           <span id="db-status-text">دیتابیس محلی</span>
@@ -200,7 +203,7 @@
           </div>
 
           <div class="filter-item">
-            <label class="filter-label">جستجوی هوشمند پلاک:</label>
+            <label class="filter-label">جستجوی پلاک خودرو:</label>
             <div class="plate-wrapper">
               <div id="search-plate-container" class="iran-plate-input plate-theme-white">
                 <div class="plate-blue-strip">
@@ -251,10 +254,11 @@
           </div>
 
           <div class="filter-item">
-            <label class="filter-label" for="select-filter-type">نوع مراجع:</label>
+            <label class="filter-label" for="select-filter-type">نوع مراجع و تردد:</label>
             <select id="select-filter-type" class="select-control">
-              <option value="ALL">همه انواع مراجع</option>
-              <option value="ONLY_VEHICLE">فقط خودرویی</option>
+              <option value="ALL">همه انواع تردد</option>
+              <option value="ONLY_VEHICLE">خودرو سواری و باری</option>
+              <option value="ONLY_MOTORCYCLE">موتورسیکلت</option>
               <option value="ONLY_PEDESTRIAN">فقط عابر پیاده</option>
               <option value="CAT_STAFF">پرسنل و اساتید</option>
               <option value="CAT_GUEST">مهمان و ارباب‌رجوع</option>
@@ -266,13 +270,13 @@
             <select id="select-filter-veh-category" class="select-control">
               <option value="ALL">همه دسته‌ها</option>
               <option value="سواری">سواری</option>
+              <option value="موتورسیکلت">موتورسیکلت</option>
               <option value="وانت">وانت / باربری</option>
               <option value="مینی‌بوس">مینی‌بوس</option>
               <option value="اتوبوس">اتوبوس</option>
               <option value="کامیونت">کامیونت / خاور</option>
               <option value="کامیون">کامیون / تریلی</option>
               <option value="ون">ون</option>
-              <option value="موتورسیکلت">موتورسیکلت</option>
               <option value="سایر">سایر</option>
             </select>
           </div>
@@ -311,7 +315,7 @@
         </div>
       </section>
 
-      <!-- کانتینر جدول داده‌ها -->
+      <!-- کانتینر جدول داده‌ها (چیدمان بهینه و بدون اسکرول افقی دسکتاپ) -->
       <section class="table-container">
         <div id="table-loading" class="loading-overlay hidden">
           <svg class="svg-icon" style="margin-left:0.5rem; animation: spin 1s linear infinite;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
@@ -322,15 +326,11 @@
           <thead>
             <tr>
               <th class="text-center w-12">#</th>
-              <th>نوع مراجع</th>
-              <th>پلاک / تردد</th>
-              <th>نام و نام خانوادگی</th>
-              <th>وسیله نقلیه</th>
-              <th>زمان ورود</th>
-              <th>زمان خروج</th>
+              <th>مشخصات مراجع</th>
+              <th>پلاک و نوع تردد</th>
+              <th>زمان ورود و خروج</th>
               <th>علت مراجعه و مقصد</th>
-              <th>مأمور ورود</th>
-              <th>مأمور خروج</th>
+              <th>مأمورین شیفت</th>
               <th>وضعیت</th>
               <th class="text-center">عملیات</th>
             </tr>
@@ -512,7 +512,7 @@
     </div>
   </div>
 
-  <!-- دکمه شناور موبایل -->
+  <!-- دکمه شناور ثبت تردد جدید در موبایل -->
   <button id="btn-mobile-fab-entry" class="mobile-fab" aria-label="ثبت تردد جدید">
     <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     <span>ثبت تردد جدید</span>
@@ -583,13 +583,13 @@
     </div>
   </div>
 
-  <!-- ۳. ثبت تردد جدید -->
+  <!-- ۳. ثبت تردد جدید (پشتیبانی کامل از خودرو، موتورسیکلت و عابر) -->
   <div id="modal-entry" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
         <span class="modal-title">
           <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          ثبت ورود جدید
+          ثبت تردد جدید
         </span>
         <button class="modal-close" data-close="modal-entry" aria-label="بستن">&times;</button>
       </div>
@@ -609,6 +609,7 @@
             <label class="form-label">نحوه تردد:</label>
             <div class="segmented-control">
               <button type="button" id="btn-toggle-vehicle" class="segmented-btn active">با خودرو</button>
+              <button type="button" id="btn-toggle-motorcycle" class="segmented-btn">موتورسیکلت</button>
               <button type="button" id="btn-toggle-pedestrian" class="segmented-btn">
                 <img src="walking.svg" class="svg-icon-img" alt="عابر پیاده" />
                 <span>عابر پیاده</span>
@@ -627,10 +628,11 @@
           </div>
         </div>
 
+        <!-- ورودی پلاک خودرو -->
         <div id="entry-plate-section" class="form-group">
           <div class="label-with-hint">
-            <label class="form-label">شماره پلاک ملی:</label>
-            <span class="field-hint-micro">با وارد کردن هر رقم، سوابق پلاک جستجو می‌شود</span>
+            <label class="form-label">شماره پلاک ملی خودرو:</label>
+            <span class="field-hint-micro">جستجوی هوشمند در سوابق</span>
           </div>
           <div class="plate-wrapper">
             <div id="modal-plate-container" class="iran-plate-input plate-theme-white">
@@ -680,11 +682,37 @@
           </div>
         </div>
 
+        <!-- ورودی استاندارد پلاک موتورسیکلت (مطابق تصویر) -->
+        <div id="entry-motor-plate-section" class="form-group hidden">
+          <div class="label-with-hint">
+            <label class="form-label">شماره پلاک ملی موتورسیکلت:</label>
+            <span class="field-hint-micro">۳ رقم بالا (شهر) + ۵ رقم پایین</span>
+          </div>
+          <div class="plate-wrapper">
+            <div id="modal-motor-plate-container" class="iran-motor-input">
+              <div class="motor-input-top-row">
+                <div class="motor-blue-strip">
+                  <div class="iran-flag-icon">
+                    <span class="flag-green"></span>
+                    <span class="flag-white"></span>
+                    <span class="flag-red"></span>
+                  </div>
+                  <span class="motor-ir-text">I.R. IRAN</span>
+                </div>
+                <input type="text" id="motor-plate-top" inputmode="numeric" class="motor-top-digits-input" placeholder="۵۵۵" maxlength="3" autocomplete="off" />
+              </div>
+              <div class="motor-input-bottom-row">
+                <input type="text" id="motor-plate-bottom" inputmode="numeric" class="motor-bottom-digits-input" placeholder="۵۴۹۱۲" maxlength="5" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="form-row-2">
           <div class="form-group">
             <div class="label-with-hint">
               <label for="input-person-name" class="form-label">نام و نام خانوادگی:</label>
-              <span class="field-hint-micro">با تایپ حروف، سوابق جستجو می‌شود</span>
+              <span class="field-hint-micro">پیش‌بینی هوشمند نام</span>
             </div>
             <input type="text" id="input-person-name" class="form-control" placeholder="مثال: دکتر محمدی" required autocomplete="off" />
           </div>
@@ -692,21 +720,21 @@
             <label for="input-vehicle-category" class="form-label">دسته وسیله نقلیه:</label>
             <select id="input-vehicle-category" class="select-control">
               <option value="سواری" selected>سواری</option>
+              <option value="موتورسیکلت">موتورسیکلت</option>
               <option value="وانت">وانت / باربری</option>
               <option value="مینی‌بوس">مینی‌بوس</option>
               <option value="اتوبوس">اتوبوس</option>
               <option value="کامیونت">کامیونت</option>
               <option value="کامیون">کامیون سنگین</option>
               <option value="ون">ون</option>
-              <option value="موتورسیکلت">موتورسیکلت</option>
               <option value="سایر">سایر</option>
             </select>
           </div>
         </div>
 
         <div class="form-group" id="entry-vehicle-model-group">
-          <label for="input-vehicle-model" class="form-label">مدل و رنگ خودرو (اختیاری):</label>
-          <input type="text" id="input-vehicle-model" class="form-control" placeholder="مثال: پژو ۲۰۶ سفید" list="vehicle-presets" />
+          <label for="input-vehicle-model" class="form-label">مدل و رنگ وسیله (اختیاری):</label>
+          <input type="text" id="input-vehicle-model" class="form-control" placeholder="مثال: پژو ۲۰۶ سفید یا هوندا ۱۲۵ قرمز" list="vehicle-presets" />
           <datalist id="vehicle-presets">
             <option value="پژو ۲۰۶">
             <option value="پژو پارس">
@@ -718,10 +746,13 @@
             <option value="تارا">
             <option value="تیبا / ساینا / کوئیک">
             <option value="شاهین">
+            <option value="موتورسیکلت هوندا ۱۲۵">
+            <option value="موتورسیکلت آپاچی">
+            <option value="موتورسیکلت پالس">
+            <option value="موتورسیکلت کلیک / اسکوتر">
             <option value="وانت پراید ۱۵۱">
             <option value="وانت نیسان زامیاد">
             <option value="وانت آریسان">
-            <option value="موتورسیکلت هوندا">
           </datalist>
         </div>
 
@@ -749,7 +780,7 @@
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close="modal-entry">انصراف</button>
-          <button type="submit" class="btn btn-primary">ثبت نهایی ورود</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-entry">ثبت نهایی ورود</button>
         </div>
       </form>
     </div>
@@ -794,13 +825,13 @@
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close="modal-exit">انصراف</button>
-          <button type="submit" class="btn btn-emerald">تأیید و ثبت خروج</button>
+          <button type="submit" class="btn btn-emerald" id="btn-submit-exit">تأیید و ثبت خروج</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ۵. ویرایش تردد -->
+  <!-- ۵. ویرایش تردد (با پشتیبانی از موتورسیکلت) -->
   <div id="modal-edit" class="modal-backdrop hidden">
     <div class="modal-card">
       <div class="modal-header">
@@ -819,6 +850,7 @@
             <label class="form-label" for="edit-traffic-type">نحوه تردد:</label>
             <select id="edit-traffic-type" class="select-control">
               <option value="VEHICLE">با خودرو</option>
+              <option value="MOTORCYCLE">موتورسیکلت</option>
               <option value="PEDESTRIAN">عابر پیاده</option>
             </select>
           </div>
@@ -834,8 +866,9 @@
           </div>
         </div>
 
+        <!-- پلاک خودرو در ویرایش -->
         <div id="edit-plate-section" class="form-group">
-          <label class="form-label">شماره پلاک ملی:</label>
+          <label class="form-label">شماره پلاک ملی خودرو:</label>
           <div class="plate-wrapper">
             <div id="edit-plate-container" class="iran-plate-input plate-theme-white">
               <div class="plate-blue-strip">
@@ -884,6 +917,29 @@
           </div>
         </div>
 
+        <!-- پلاک موتورسیکلت در ویرایش -->
+        <div id="edit-motor-plate-section" class="form-group hidden">
+          <label class="form-label">شماره پلاک موتورسیکلت (۳ رقم بالا و ۵ رقم پایین):</label>
+          <div class="plate-wrapper">
+            <div id="edit-motor-plate-container" class="iran-motor-input">
+              <div class="motor-input-top-row">
+                <div class="motor-blue-strip">
+                  <div class="iran-flag-icon">
+                    <span class="flag-green"></span>
+                    <span class="flag-white"></span>
+                    <span class="flag-red"></span>
+                  </div>
+                  <span class="motor-ir-text">I.R. IRAN</span>
+                </div>
+                <input type="text" id="edit-motor-plate-top" inputmode="numeric" class="motor-top-digits-input" placeholder="۵۵۵" maxlength="3" autocomplete="off" />
+              </div>
+              <div class="motor-input-bottom-row">
+                <input type="text" id="edit-motor-plate-bottom" inputmode="numeric" class="motor-bottom-digits-input" placeholder="۵۴۹۱۲" maxlength="5" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="form-row-2">
           <div class="form-group">
             <label class="form-label" for="edit-person-name">نام و نام خانوادگی:</label>
@@ -893,20 +949,20 @@
             <label class="form-label" for="edit-vehicle-category">دسته وسیله نقلیه:</label>
             <select id="edit-vehicle-category" class="select-control">
               <option value="سواری">سواری</option>
+              <option value="موتورسیکلت">موتورسیکلت</option>
               <option value="وانت">وانت / باربری</option>
               <option value="مینی‌بوس">مینی‌بوس</option>
               <option value="اتوبوس">اتوبوس</option>
               <option value="کامیونت">کامیونت</option>
               <option value="کامیون">کامیون</option>
               <option value="ون">ون</option>
-              <option value="موتورسیکلت">موتورسیکلت</option>
               <option value="سایر">سایر</option>
             </select>
           </div>
         </div>
 
         <div class="form-group" id="edit-veh-model-group">
-          <label class="form-label" for="edit-vehicle-model">مدل و مشخصه خودرو:</label>
+          <label class="form-label" for="edit-vehicle-model">مدل و مشخصه خودرو / موتور:</label>
           <input type="text" id="edit-vehicle-model" class="form-control" list="vehicle-presets" />
         </div>
 
@@ -947,7 +1003,7 @@
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close="modal-edit">انصراف</button>
-          <button type="submit" class="btn btn-primary">ذخیره تغییرات</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-edit">ذخیره تغییرات</button>
         </div>
       </form>
     </div>
