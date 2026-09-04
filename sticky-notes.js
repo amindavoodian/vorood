@@ -1,13 +1,14 @@
 /**
  * sticky-notes.js
- * ماژول پیشرفته مدیریت یادداشت‌های چسبان، یادآور صوتی و پنجره هشدار سرتاسری
+ * ماژول مدیریت یادداشت‌های چسبان و سیستم یادآوری هوشمند
+ * بارگذاری فوری با کش محلی، همگام‌سازی ابری پیوسته، چیم صوتی و جلوگیری از تداخل کشو در موبایل
  */
 
 (function () {
   const toPersian = (v) => (window.Jalali && Jalali.toPersianDigits) ? Jalali.toPersianDigits(String(v ?? '')) : String(v ?? '');
   const toLatin = (v) => (window.Jalali && Jalali.toLatinDigits) ? Jalali.toLatinDigits(String(v ?? '')) : String(v ?? '');
 
-  // تبدیل تاریخ شمسی به میلادی به صورت کاملاً ایمن و تضمین‌شده
+  // تبدیل تاریخ شمسی به میلادی جهت محاسبه سررسید
   function safeJalaliToGregorian(jDateStr, jTimeStr) {
     try {
       const cleanDate = toLatin(jDateStr || '').trim();
@@ -29,7 +30,6 @@
         }
       }
 
-      // موتور پشتیبان در صورت عدم وجود تابع در لایبری
       if (!gY || !gM || !gD) {
         const g = jalaliFallbackConverter(jy, jm, jd);
         gY = g.gy; gM = g.gm; gD = g.gd;
@@ -91,6 +91,12 @@
     async init() {
       this.bindDOM();
       this.initAudioUnlock();
+
+      // ۱. نمایش فوری و بدون تاخیر از حافظه محلی
+      this.notes = window.DB ? window.DB.getLocalNotes() : [];
+      this.render();
+
+      // ۲. استعلام موازی از دیتابیس ابری و به‌روزرسانی در صورت تغییر
       await this.loadNotes();
       this.startReminderChecker();
     },
@@ -140,7 +146,6 @@
       this.reminderDateInput = document.getElementById('sn-reminder-date');
       this.reminderTimeInput = document.getElementById('sn-reminder-time');
 
-      // اتصال فیلدهای یادآور به پیکر چرخشی
       if (window.ScrollPicker) {
         ScrollPicker.attach(this.reminderDateInput, 'DATE');
         ScrollPicker.attach(this.reminderTimeInput, 'TIME');
@@ -185,7 +190,10 @@
 
     async loadNotes() {
       try {
-        this.notes = window.DB ? (await window.DB.getStickyNotes()) : [];
+        const fetched = window.DB ? (await window.DB.getStickyNotes()) : [];
+        if (fetched && fetched.length >= 0) {
+          this.notes = fetched;
+        }
       } catch (err) {
         this.notes = window.DB ? window.DB.getLocalNotes() : [];
       }
@@ -274,6 +282,11 @@
     openNoteFormModal(noteId = null) {
       const activeUser = window.DB ? window.DB.getCurrentUser() : null;
       document.getElementById('sn-form-error')?.classList.add('hidden');
+
+      // بستن کشوی موبایل جهت جلوگیری از قرارگیری فرم در پشت کشو
+      if (window.innerWidth <= 820) {
+        this.toggleMobileDrawer(false);
+      }
 
       if (noteId) {
         const note = this.notes.find(n => n.id === noteId);
@@ -376,8 +389,13 @@
       this.alertCheckInterval = setInterval(async () => {
         try {
           const cloudNotes = window.DB ? (await window.DB.getStickyNotes()) : [];
-          if (cloudNotes && cloudNotes.length > 0) {
-            this.notes = cloudNotes;
+          if (cloudNotes && cloudNotes.length >= 0) {
+            // مقایسه سریع جهت جلوگیری از ری‌رندر بی‌مورد
+            const isChanged = JSON.stringify(cloudNotes) !== JSON.stringify(this.notes);
+            if (isChanged) {
+              this.notes = cloudNotes;
+              this.render();
+            }
           }
         } catch (e) {}
         this.checkPendingReminders();
