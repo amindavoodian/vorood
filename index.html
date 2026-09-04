@@ -1168,5 +1168,376 @@
   <script src="smart-suggest.js"></script>
   <script src="sticky-notes.js"></script>
   <script src="app.js"></script>
+    <!-- کانتینر مسلم -->
+  <script>
+(function () {
+  // درج استایل‌های اختصاصی و مدرن در صفحه
+  const style = document.createElement('style');
+  style.id = 'moslem-update-modal-styles';
+  style.textContent = `
+    .m-update-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      animation: mFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      direction: rtl;
+      font-family: 'Vazirmatn', -apple-system, sans-serif;
+    }
+    @keyframes mFadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .m-update-card {
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 1.25rem;
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.05);
+      overflow: hidden;
+      position: relative;
+    }
+    .m-update-header {
+      background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1.4rem 1.2rem 1rem 1.2rem;
+      text-align: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .m-update-close {
+      position: absolute;
+      top: 0.8rem;
+      left: 0.8rem;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .m-update-close:hover {
+      background: #fee2e2;
+      color: #ef4444;
+      border-color: #fca5a5;
+    }
+    .m-emoji-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 68px;
+      height: 68px;
+      font-size: 2.7rem;
+      background: #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 8px 16px -4px rgba(37, 99, 235, 0.15), 0 0 0 4px #dbeafe;
+      margin-bottom: 0.6rem;
+      user-select: none;
+      animation: mBounce 2s infinite ease-in-out;
+    }
+    @keyframes mBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .m-dedicated-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #1e3a8a;
+      letter-spacing: -0.3px;
+      margin-bottom: 0.25rem;
+    }
+    .m-dedicated-sub {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+      line-height: 1.4;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    .m-update-body {
+      padding: 1.1rem 1.3rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      line-height: 1.55;
+    }
+    .m-update-body::-webkit-scrollbar { width: 5px; }
+    .m-update-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    .m-sec-title {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.84rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+    .m-badge-pulse {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid #bfdbfe;
+    }
+    .m-items-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.5rem;
+    }
+    .m-feature-item {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 0.65rem 0.8rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      transition: all 0.15s ease;
+    }
+    .m-feature-item:hover {
+      background: #ffffff;
+      border-color: #93c5fd;
+      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.06);
+    }
+    .m-feature-item.highlight-box {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+    .m-feature-item.highlight-box:hover {
+      background: #ffffff;
+      border-color: #86efac;
+    }
+    .m-item-icon {
+      font-size: 1.25rem;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .m-item-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .m-item-name {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #1e293b;
+    }
+    .m-item-desc {
+      font-size: 0.74rem;
+      color: #64748b;
+      line-height: 1.45;
+    }
+    .m-update-footer {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 0.85rem 1.2rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+    .m-btn-accept {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      padding: 0.55rem 1.4rem;
+      font-size: 0.82rem;
+      font-weight: 800;
+      border-radius: 0.65rem;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+      transition: all 0.15s ease;
+      width: 100%;
+      text-align: center;
+    }
+    .m-btn-accept:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+    }
+    @media (min-width: 480px) {
+      .m-btn-accept { width: auto; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // ایجاد پنجره مودال در بدنه صفحه
+  const modal = document.createElement('div');
+  modal.className = 'm-update-backdrop';
+  modal.id = 'moslem-update-modal';
+  modal.innerHTML = `
+    <div class="m-update-card" role="dialog" aria-modal="true">
+      <div class="m-update-header">
+        <button class="m-update-close" id="m-btn-close-x" title="بستن پنجره">&times;</button>
+        <div class="m-emoji-wrap" role="img" aria-label="Smile">😊</div>
+        <h2 class="m-dedicated-title">قابل توجه مسلم مروتی</h2>
+        <p class="m-dedicated-sub">سلام آقا مسلم گل؛ سامانه انتظامات و تردد پردیس به نسخه جدید ارتقا یافت. خلاصه تغییرات تازه و تمام امکانات فعال را در ادامه مشاهده فرمایید:</p>
+      </div>
+
+      <div class="m-update-body">
+        <!-- بخش ۱: تغییرات تازه اعمال‌شده -->
+        <div>
+          <div class="m-sec-title">
+            <span>🚀 تغییرات و بهبودهای نسخه جدید</span>
+            <span class="m-badge-pulse">تازه‌ها</span>
+          </div>
+          <div class="m-items-grid">
+            <div class="m-feature-item highlight-box">
+              <span class="m-item-icon">🏍️</span>
+              <div class="m-item-content">
+                <span class="m-item-name">پشتیبانی کامل از پلاک ملی موتورسیکلت</span>
+                <span class="m-item-desc">امکان ثبت و جستجوی پلاک موتورسیکلت با فرمت استاندارد دو ردیفه (۳ رقم بالا برای منطقه و ۵ رقم پایین برای شماره انتظامی).</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item highlight-box">
+              <span class="m-item-icon">📱</span>
+              <div class="m-item-content">
+                <span class="m-item-name">اصلاح چیدمان و رفع باگ کارت‌ها در موبایل</span>
+                <span class="m-item-desc">کارت‌های تردد در گوشی موبایل اکنون تمام‌عرض، خوانا و با فاصله مناسب نمایش داده می‌شوند و نام مراجع دیگر بریده یا فشرده نمی‌شود.</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item highlight-box">
+              <span class="m-item-icon">💻</span>
+              <div class="m-item-content">
+                <span class="m-item-name">حذف کامل اسکرول افقی در مانیتور و دسکتاپ</span>
+                <span class="m-item-desc">اطلاعات جدول اصلی به صورت لایه‌ای و مدرن طراحی شد تا تمام مشخصات (ورود، خروج، مأموران و توضیحات) بدون اسکرول افقی دیده شوند.</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item highlight-box">
+              <span class="m-item-icon">📝</span>
+              <div class="m-item-content">
+                <span class="m-item-name">رفع باگ یادداشت‌ها و عدم تداخل در موبایل</span>
+                <span class="m-item-desc">یادداشت‌ها در لحظه باز شدن برنامه فوراً بارگذاری می‌شوند و هنگام ثبت پیام جدید در موبایل، فرم روی صفحه قرار می‌گیرد.</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item highlight-box">
+              <span class="m-item-icon">⚡</span>
+              <div class="m-item-content">
+                <span class="m-item-name">نشانگر مینیمال وضعیت تبادل داده (Loading)</span>
+                <span class="m-item-desc">نوار باریک آبی در بالاترین بخش صفحه و چراغ چشمک‌زن نشانگر دیتابیس به شما اعلام می‌کنند که سیستم در حال پردازش است.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- بخش ۲: کلیه امکانات موجود سامانه -->
+        <div>
+          <div class="m-sec-title">
+            <span>⭐ مروری بر تمام قابلیت‌های سامانه</span>
+          </div>
+          <div class="m-items-grid">
+            <div class="m-feature-item">
+              <span class="m-item-icon">💡</span>
+              <div class="m-item-content">
+                <span class="m-item-name">پیشنهاد و تکمیل هوشمند (Smart Suggest)</span>
+                <span class="m-item-desc">با وارد کردن ارقام پلاک یا حروف نام، مشخصات خودرو و فرد از سوابق قبلی حدس زده شده و با یک کلیک فرم پر می‌شود.</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item">
+              <span class="m-item-icon">🎯</span>
+              <div class="m-item-content">
+                <span class="m-item-name">انتخابگر چرخشی تاریخ و ساعت (Scroll Drum Picker)</span>
+                <span class="m-item-desc">انتخاب آسان تاریخ شمسی و ساعت شیفت با گردونه اسکرول روان و کلیدهای فوری «امروز»، «دیروز»، «الان» و «شیفت».</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item">
+              <span class="m-item-icon">🔔</span>
+              <div class="m-item-content">
+                <span class="m-item-name">یادداشت‌های چسبان و هشدار مأموریت شیفت</span>
+                <span class="m-item-desc">ثبت هماهنگی‌ها با رنگ‌های ملایم، پخش چیم صوتی در زمان مقرر و امکان تعویق هشدار (اسنوز ۵ و ۱۵ دقیقه‌ای).</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item">
+              <span class="m-item-icon">📊</span>
+              <div class="m-item-content">
+                <span class="m-item-name">فیلترهای پیشرفته و گزارش‌گیری اکسل (CSV)</span>
+                <span class="m-item-desc">فیلتر براساس تاریخ، شیفت‌های ۳گانه کاری، نوع مراجع، وضعیت حضور و دریافت خروجی استاندارد اکسل با حروف فارسی مرتب.</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item">
+              <span class="m-item-icon">☁️</span>
+              <div class="m-item-content">
+                <span class="m-item-name">پایگاه داده ابری (Turso) + عملکرد آفلاین</span>
+                <span class="m-item-desc">همگام‌سازی لحظه‌ای بین چند سیستم نگهبانی؛ در صورت قطعی اینترنت نیز اطلاعات در دیتابیس محلی ذخیره می‌ماند.</span>
+              </div>
+            </div>
+
+            <div class="m-feature-item">
+              <span class="m-item-icon">👥</span>
+              <div class="m-item-content">
+                <span class="m-item-name">مدیریت کاربران، شیفت‌ها و سطوح دسترسی</span>
+                <span class="m-item-desc">تعریف مأموران شیفت، ثبت‌نام با پین‌کد اختصاصی، و تعیین سطح دسترسی جهت خواندن، ثبت، ویرایش و حذف ترددها.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="m-update-footer">
+        <button type="button" class="m-btn-accept" id="m-btn-accept">متوجه شدم، بزن بریم! 🚀</button>
+      </div>
+    </div>
+  `;
+
+  // افزودن به صفحه پس از بارگذاری اولیه
+  setTimeout(() => {
+    document.body.appendChild(modal);
+
+    const closeModal = () => {
+      modal.style.opacity = '0';
+      modal.style.transition = 'opacity 0.2s ease';
+      setTimeout(() => modal.remove(), 200);
+    };
+
+    document.getElementById('m-btn-close-x')?.addEventListener('click', closeModal);
+    document.getElementById('m-btn-accept')?.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    const escHandler = (e) => {
+      if (e.key === 'Escape' && document.getElementById('moslem-update-modal')) {
+        closeModal();
+        window.removeEventListener('keydown', escHandler);
+      }
+    };
+    window.addEventListener('keydown', escHandler);
+  }, 400);
+})();
+</script>
+  <!-- کانتینر مسلم -->
+
 </body>
 </html>
