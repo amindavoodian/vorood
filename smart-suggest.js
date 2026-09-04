@@ -1,10 +1,10 @@
 /**
  * smart-suggest.js
  * موتور هوشمند پیش‌بینی، حدس و تکمیل خودکار فیلدهای تردد بر اساس سوابق پیشین
+ * پشتیبانی کامل از خودرو، موتورسیکلت و عابر پیاده
  */
 
 (function () {
-  // توابع نرمال‌سازی حروف و ارقام
   const toLatin = (v) => (window.Jalali && Jalali.toLatinDigits) ? Jalali.toLatinDigits(String(v ?? '')) : String(v ?? '');
   const toPersian = (v) => (window.Jalali && Jalali.toPersianDigits) ? Jalali.toPersianDigits(String(v ?? '')) : String(v ?? '');
 
@@ -23,7 +23,7 @@
     lastAppliedBackup: null,
 
     /**
-     * استخراج و تجمیع کلیه مراجعین یکتا از تاریخچه ترددها و پروفایل‌ها
+     * استخراج و تجمیع کلیه مراجعین یکتا از تاریخچه ترددها و بانک پروفایل‌ها
      */
     async collectHistoryCandidates() {
       const candidatesMap = new Map();
@@ -39,17 +39,24 @@
 
       const profiles = DB.getLocalProfiles ? DB.getLocalProfiles() : {};
 
-      // ۱. ثبت ترددهای ثبت‌شده به ترتیب جدیدترین
+      // ۱. ثبت سوابق از رکوردهای تردد ثبت‌شده
       records.forEach((r) => {
         const isPed = r.traffic_type === 'PEDESTRIAN';
-        const key = isPed
-          ? `PED_${cleanNormalize(r.person_name)}`
-          : `VEH_${toLatin(r.plate_part1)}_${r.plate_letter}_${toLatin(r.plate_part2)}_${toLatin(r.plate_city)}`;
+        const isMotor = r.traffic_type === 'MOTORCYCLE' || r.vehicle_category === 'موتورسیکلت';
+
+        let key = '';
+        if (isPed) {
+          key = `PED_${cleanNormalize(r.person_name)}`;
+        } else if (isMotor) {
+          key = `MTR_${toLatin(r.plate_part1)}_${toLatin(r.plate_part2)}`;
+        } else {
+          key = `VEH_${toLatin(r.plate_part1)}_${r.plate_letter}_${toLatin(r.plate_part2)}_${toLatin(r.plate_city)}`;
+        }
 
         if (!candidatesMap.has(key)) {
           candidatesMap.set(key, {
             key,
-            trafficType: r.traffic_type || 'VEHICLE',
+            trafficType: isPed ? 'PEDESTRIAN' : (isMotor ? 'MOTORCYCLE' : 'VEHICLE'),
             personName: r.person_name || '',
             personCategory: r.person_category || 'GUEST',
             platePart1: r.plate_part1 || '',
@@ -57,7 +64,7 @@
             platePart2: r.plate_part2 || '',
             plateCity: r.plate_city || '',
             plateFull: r.plate_full || '',
-            vehicleCategory: r.vehicle_category || 'سواری',
+            vehicleCategory: r.vehicle_category || (isMotor ? 'موتورسیکلت' : 'سواری'),
             vehicleModel: r.vehicle_model || '',
             notes: r.notes || '',
             lastDate: r.entry_jalali_date || '',
@@ -70,14 +77,21 @@
       // ۲. ترکیب با بانک پروفایل‌های ذخیره‌شده
       Object.values(profiles).forEach((p) => {
         const isPed = p.trafficType === 'PEDESTRIAN';
-        const key = isPed
-          ? `PED_${cleanNormalize(p.personName)}`
-          : `VEH_${toLatin(p.platePart1)}_${p.plateLetter}_${toLatin(p.platePart2)}_${toLatin(p.plateCity)}`;
+        const isMotor = p.trafficType === 'MOTORCYCLE' || p.vehicleCategory === 'موتورسیکلت';
+
+        let key = '';
+        if (isPed) {
+          key = `PED_${cleanNormalize(p.personName)}`;
+        } else if (isMotor) {
+          key = `MTR_${toLatin(p.platePart1)}_${toLatin(p.platePart2)}`;
+        } else {
+          key = `VEH_${toLatin(p.platePart1)}_${p.plateLetter}_${toLatin(p.platePart2)}_${toLatin(p.plateCity)}`;
+        }
 
         if (!candidatesMap.has(key)) {
           candidatesMap.set(key, {
             key,
-            trafficType: p.trafficType || 'VEHICLE',
+            trafficType: isPed ? 'PEDESTRIAN' : (isMotor ? 'MOTORCYCLE' : 'VEHICLE'),
             personName: p.personName || '',
             personCategory: p.personCategory || 'GUEST',
             platePart1: p.platePart1 || '',
@@ -85,7 +99,7 @@
             platePart2: p.platePart2 || '',
             plateCity: p.plateCity || '',
             plateFull: p.plateFull || '',
-            vehicleCategory: p.vehicleCategory || 'سواری',
+            vehicleCategory: p.vehicleCategory || (isMotor ? 'موتورسیکلت' : 'سواری'),
             vehicleModel: p.vehicleModel || '',
             notes: p.defaultNotes || '',
             lastDate: '',
@@ -105,6 +119,7 @@
       const candidates = await this.collectHistoryCandidates();
       const { type, nameQuery, p1, ltr, p2, city } = params;
 
+      // جستجو با نام
       if (type === 'NAME') {
         const q = cleanNormalize(nameQuery);
         if (!q || q.length < 2) return [];
@@ -121,6 +136,45 @@
           .slice(0, 4);
       }
 
+      // جستجوی پلاک موتورسیکلت
+      if (type === 'MOTORCYCLE') {
+        const topDigits = toLatin(p1 || '').trim();
+        const bottomDigits = toLatin(p2 || '').trim();
+
+        if (!topDigits && !bottomDigits) return [];
+
+        const scored = [];
+        candidates.forEach((c) => {
+          if (c.trafficType !== 'MOTORCYCLE' && c.vehicleCategory !== 'موتورسیکلت') return;
+
+          const itemTop = toLatin(c.platePart1 || '');
+          const itemBottom = toLatin(c.platePart2 || '');
+
+          let score = 0;
+          let match = false;
+
+          if (topDigits) {
+            if (itemTop === topDigits) { score += 40; match = true; }
+            else if (itemTop.startsWith(topDigits)) { score += 20; match = true; }
+            else return;
+          }
+
+          if (bottomDigits) {
+            if (itemBottom === bottomDigits) { score += 50; match = true; }
+            else if (itemBottom.includes(bottomDigits)) { score += 25; match = true; }
+            else if (!topDigits) return;
+          }
+
+          if (match) {
+            scored.push({ item: c, score: score + (c.timestamp ? 5 : 0) });
+          }
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        return scored.map((s) => s.item).slice(0, 4);
+      }
+
+      // جستجوی پلاک خودرو
       if (type === 'PLATE') {
         const cP1 = toLatin(p1 || '').trim();
         const cP2 = toLatin(p2 || '').trim();
@@ -132,7 +186,7 @@
 
         const scored = [];
         candidates.forEach((c) => {
-          if (c.trafficType === 'PEDESTRIAN') return;
+          if (c.trafficType === 'PEDESTRIAN' || c.trafficType === 'MOTORCYCLE') return;
 
           const itemP1 = toLatin(c.platePart1);
           const itemP2 = toLatin(c.platePart2);
@@ -145,7 +199,7 @@
           if (cP1) {
             if (itemP1 === cP1) { score += 40; matchCount++; }
             else if (itemP1.startsWith(cP1)) { score += 20; matchCount++; }
-            else return; // اگر پارت ۱ پر شده و تطابق ندارد رد کن
+            else return;
           }
 
           if (cP2) {
@@ -192,10 +246,7 @@
 
       let itemsHtml = matches.map((m, idx) => {
         const isPed = m.trafficType === 'PEDESTRIAN';
-        const plateBadge = isPed
-          ? '<span class="badge-pedestrian"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>'
-          : (window.PlateUtils ? PlateUtils.renderPlateBadge(m.platePart1, m.plateLetter, m.platePart2, m.plateCity) : '');
-
+        const plateBadge = window.PlateUtils ? PlateUtils.renderTrafficBadge(m) : '';
         const catBadge = window.PlateUtils ? PlateUtils.renderPersonCategoryBadge(m.personCategory) : '';
         const vehInfo = isPed ? '' : `${m.vehicleCategory || 'سواری'} ${m.vehicleModel ? `(${m.vehicleModel})` : ''}`;
         const lastSeen = m.lastDate ? `آخرین تردد: ${toPersian(m.lastDate)} ساعت ${toPersian(m.lastTime)}` : 'شناخته‌شده در سیستم';
@@ -228,27 +279,25 @@
         <div class="suggest-box-header">
           <div class="suggest-box-title">
             <svg class="svg-icon" style="color:var(--primary);" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-            <span>پیشنهاد هوشمند (بر اساس ترددهای قبلی)</span>
+            <span>پیشنهاد هوشمند (سوابق پیشین)</span>
           </div>
           <button type="button" class="suggest-box-close" id="btn-close-suggest" title="رد پیشنهاد (Esc)">&times;</button>
         </div>
         <div class="suggest-items-container">${itemsHtml}</div>
       `;
 
-      // قرار دادن المنت زیر عنصر ورودی فعال
       const parentFormGroup = anchorEl.closest('.form-group') || anchorEl.parentElement;
       parentFormGroup.style.position = 'relative';
       parentFormGroup.appendChild(box);
       this.activePopupEl = box;
 
-      // شنونده‌های رویداد کلیک
       box.querySelector('#btn-close-suggest')?.addEventListener('click', (e) => {
         e.stopPropagation();
         this.hideSuggestionBox();
       });
 
       box.querySelectorAll('.suggest-item').forEach((el) => {
-        el.addEventListener('click', (e) => {
+        el.addEventListener('click', () => {
           const idx = Number(el.getAttribute('data-idx'));
           if (matches[idx]) onSelect(matches[idx]);
           this.hideSuggestionBox();
