@@ -1,95 +1,27 @@
 /**
  * app.js
- * کنترلر اصلی سامانه ثبت و کنترل تردد انتظامات و حراست
- * مجهز به سیستم صفحه‌بندی هوشمند، فیلتر جامع، خروجی داده‌ها، انتخابگر چرخشی و مدیریت یادداشت‌ها
+ * کنترلر اصلی سامانه جامع ثبت و کنترل تردد پردیس
+ * مجهز به پشتیبانی کامل از خودرو، موتورسیکلت، عابر پیاده،
+ * رندر چندسطری بدون اسکرول افقی، کارت‌های بهینه‌شده موبایل و نشانگر پردازش ابری
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
   const toPersian = (val) => (window.Jalali && typeof Jalali.toPersianDigits === 'function') ? Jalali.toPersianDigits(String(val ?? '')) : String(val ?? '');
   const toLatin = (val) => (window.Jalali && typeof Jalali.toLatinDigits === 'function') ? Jalali.toLatinDigits(String(val ?? '')) : String(val ?? '');
 
-  if (!window.PlateUtils) {
-    window.PlateUtils = {
-      getPlateThemeClass(letter) {
-        if (['ت', 'ع', 'ک'].includes(letter)) return 'plate-theme-yellow';
-        if (['پ', 'ث', 'ز', 'ف'].includes(letter)) return 'plate-theme-green';
-        if (['الف', 'تشریفات'].includes(letter)) return 'plate-theme-red';
-        if (letter === 'ش') return 'plate-theme-navy';
-        if (['D', 'S'].includes(letter)) return 'plate-theme-lightblue';
-        return 'plate-theme-white';
-      },
-      updatePlateTheme(el, letter) {
-        if (!el) return;
-        const theme = this.getPlateThemeClass(letter);
-        el.className = `iran-plate-input ${theme}`;
-      },
-      renderPlateBadge(p1, ltr, p2, city) {
-        if (!p1 && !p2) return '<span style="color:var(--text-faint); font-size:0.75rem;">—</span>';
-        const theme = this.getPlateThemeClass(ltr || 'ب');
-        const p1Str = toPersian(p1 || '');
-        const p2Str = toPersian(p2 || '');
-        const cityStr = toPersian(city || '');
-        const ltrStr = ltr === 'معلولین' ? '♿' : (ltr || 'ب');
-        return `
-          <div class="iran-plate-badge ${theme}">
-            <div class="plate-blue-strip">
-              <div class="iran-flag-icon">
-                <span class="flag-green"></span>
-                <span class="flag-white"></span>
-                <span class="flag-red"></span>
-              </div>
-              <span class="plate-country-code">I.R.</span>
-            </div>
-            <div class="plate-nums-box">
-              <span>${p1Str}</span>
-              <span class="plate-letter-tag">${ltrStr}</span>
-              <span>${p2Str}</span>
-            </div>
-            <div class="plate-city-box">
-              <span class="plate-iran-tag">ایران</span>
-              <span>${cityStr}</span>
-            </div>
-          </div>
-        `;
-      },
-      formatPlateFull(p1, ltr, p2, city) {
-        if (!p1 || !p2 || !city) return '';
-        return `${p1} ${ltr} ${p2} ایران ${city}`;
-      },
-      renderPersonCategoryBadge(cat) {
-        const badges = {
-          STAFF: ['کارمند / پرسنل', 'badge-person-staff'],
-          FACULTY: ['هیئت علمی', 'badge-person-faculty'],
-          STUDENT: ['دانشجو', 'badge-person-student'],
-          CONTRACTOR: ['پیمانکار', 'badge-person-contractor'],
-          GUEST: ['ارباب‌رجوع', 'badge-person-guest']
-        };
-        const [label, cls] = badges[cat] || ['ارباب‌رجوع', 'badge-person-guest'];
-        return `<span class="badge-person ${cls}">${label}</span>`;
-      },
-      setupPlateInputAutoConvert(inputEl, maxLen, nextEl, callback) {
-        if (!inputEl) return;
-        inputEl.addEventListener('input', (e) => {
-          const val = toPersian(e.target.value.replace(/[^\d]/g, '').slice(0, maxLen));
-          e.target.value = val;
-          if (val.length === maxLen && nextEl) nextEl.focus();
-          if (typeof callback === 'function') callback();
-        });
-      }
-    };
-  }
-
   const PlateUtils = window.PlateUtils;
   const DB = window.DB;
   const SmartSuggest = window.SmartSuggest;
 
   let currentDate = (window.Jalali && Jalali.formatJalaliDate) ? Jalali.formatJalaliDate(new Date()) : '1405/01/01';
-  let entryTrafficType = 'VEHICLE';
+  let entryTrafficType = 'VEHICLE'; // 'VEHICLE' | 'MOTORCYCLE' | 'PEDESTRIAN'
   
   let currentFilteredRecords = [];
   let currentPage = 1;
   let pageSize = 25;
 
+  // المان‌های نشانگر وضعیت و هدر
+  const appLoadingBar = document.getElementById('app-loading-bar');
   const headerUserName = document.getElementById('header-user-name');
   const headerUserRole = document.getElementById('header-user-role');
   const btnOpenUserProfile = document.getElementById('btn-open-user-profile');
@@ -98,12 +30,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const dbStatusText = document.getElementById('db-status-text');
   const noReadPermissionBanner = document.getElementById('no-read-permission-banner');
 
+  // کارت‌های آمار
   const statActiveCount = document.getElementById('stat-active-count');
   const statTotalCount = document.getElementById('stat-total-count');
   const statStaffCount = document.getElementById('stat-staff-count');
   const statExitedCount = document.getElementById('stat-exited-count');
   const statsContainer = document.getElementById('stats-container');
 
+  // جدول و صفحه‌بندی
   const displayDateEl = document.getElementById('display-jalali-date');
   const recordsTbody = document.getElementById('records-tbody');
   const tableEmptyState = document.getElementById('table-empty-state');
@@ -115,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pgButtonsContainer = document.getElementById('pg-buttons-container');
   const pgSizeSelect = document.getElementById('pg-size-select');
 
+  // فیلترها
   const selectFilterGuard = document.getElementById('select-filter-guard');
   const selectDatePreset = document.getElementById('select-date-preset');
   const dayStepperGroup = document.getElementById('day-stepper-group');
@@ -144,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const mainFilterPanel = document.getElementById('main-filter-panel');
   const filterToggleArrow = document.getElementById('filter-toggle-arrow');
 
+  // مودال‌ها
   const modalSetupAdmin = document.getElementById('modal-setup-admin');
   const formSetupAdmin = document.getElementById('form-setup-admin');
   const setupAdminName = document.getElementById('setup-admin-name');
@@ -176,13 +112,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const formEditRecord = document.getElementById('form-edit-record');
   const formCloudDb = document.getElementById('tab-cloud-db');
 
+  // کنترل سوییچر و ورودی‌های پلاک در مودال ورود جدید
   const btnToggleVehicle = document.getElementById('btn-toggle-vehicle');
+  const btnToggleMotorcycle = document.getElementById('btn-toggle-motorcycle');
   const btnTogglePedestrian = document.getElementById('btn-toggle-pedestrian');
   const entryPlateSection = document.getElementById('entry-plate-section');
+  const entryMotorPlateSection = document.getElementById('entry-motor-plate-section');
   const entryVehicleCategoryGroup = document.getElementById('entry-vehicle-category-group');
   const entryVehicleModelGroup = document.getElementById('entry-vehicle-model-group');
   const modalPlateContainer = document.getElementById('modal-plate-container');
-  const editPlateContainer = document.getElementById('edit-plate-container');
+  const modalMotorPlateContainer = document.getElementById('modal-motor-plate-container');
+
   const autofillIndicator = document.getElementById('autofill-indicator');
   const btnUndoAutofill = document.getElementById('btn-undo-autofill');
   const autofillInfoLabel = document.getElementById('autofill-info-label');
@@ -191,13 +131,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   const ltr = document.getElementById('plate-ltr');
   const p2 = document.getElementById('plate-p2');
   const city = document.getElementById('plate-city');
+  const motorPlateTop = document.getElementById('motor-plate-top');
+  const motorPlateBottom = document.getElementById('motor-plate-bottom');
   const inputPersonName = document.getElementById('input-person-name');
 
+  // کنترل‌های ویرایش
+  const editTrafficType = document.getElementById('edit-traffic-type');
+  const editPlateSection = document.getElementById('edit-plate-section');
+  const editMotorPlateSection = document.getElementById('edit-motor-plate-section');
+  const editPlateContainer = document.getElementById('edit-plate-container');
   const editP1 = document.getElementById('edit-plate-p1');
   const editLtr = document.getElementById('edit-plate-ltr');
   const editP2 = document.getElementById('edit-plate-p2');
   const editCity = document.getElementById('edit-plate-city');
+  const editMotorPlateTop = document.getElementById('edit-motor-plate-top');
+  const editMotorPlateBottom = document.getElementById('edit-motor-plate-bottom');
+  const editVehCatGroup = document.getElementById('edit-veh-cat-group');
+  const editVehModelGroup = document.getElementById('edit-veh-model-group');
+  const editStatusSelect = document.getElementById('edit-status');
+  const editExitFields = document.getElementById('edit-exit-fields');
 
+  // تنظیمات کاربران
   const userFormId = document.getElementById('user-form-id');
   const userFormName = document.getElementById('user-form-name');
   const userFormUsername = document.getElementById('user-form-username');
@@ -214,7 +168,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const usersListContainer = document.getElementById('users-list-container');
   const userFormTitle = document.getElementById('user-form-title');
 
-  // اتصال همگانی فیلدهای تاریخ و ساعت به ماژول اسکرول چرخشی (Scroll Picker)
+  // =========================================================================
+  // تابع نشانگر مینیمال پردازش دیتابیس (Loading Bar & Sync Dot)
+  // =========================================================================
+  function setDbLoading(isLoading) {
+    if (appLoadingBar) appLoadingBar.classList.toggle('is-active', isLoading);
+    if (dbStatusIndicator) {
+      if (isLoading) {
+        dbStatusIndicator.classList.add('is-syncing');
+      } else {
+        dbStatusIndicator.classList.remove('is-syncing');
+      }
+    }
+  }
+
+  // اتصال همگانی فیلدهای تاریخ و ساعت به پیکر چرخشی (Scroll Picker)
   if (window.ScrollPicker) {
     ScrollPicker.attach(inputCustomDate, 'DATE');
     ScrollPicker.attach(timeFrom, 'TIME');
@@ -398,6 +366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
+      setDbLoading(true);
       const admin = await DB.setupInitialAdmin({
         name,
         username,
@@ -413,6 +382,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       setupErrorMsg.textContent = err.message;
       setupErrorMsg.classList.remove('hidden');
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -425,6 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const pin = loginInputPin.value.trim();
 
     try {
+      setDbLoading(true);
       const user = await DB.authenticate(selectedUserId, pin);
       modalLogin.classList.add('hidden');
       updateUserHeader();
@@ -434,6 +406,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       loginErrorMsg.textContent = err.message;
       loginErrorMsg.classList.remove('hidden');
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -451,24 +425,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // سوییچ بین نوع تردد در مودال ورود جدید
   function setEntryTrafficType(type) {
     entryTrafficType = type;
-    if (type === 'PEDESTRIAN') {
-      btnTogglePedestrian?.classList.add('active');
-      btnToggleVehicle?.classList.remove('active');
-      entryPlateSection?.classList.add('hidden');
-      entryVehicleCategoryGroup?.classList.add('hidden');
-      entryVehicleModelGroup?.classList.add('hidden');
-    } else {
-      btnToggleVehicle?.classList.add('active');
-      btnTogglePedestrian?.classList.remove('active');
-      entryPlateSection?.classList.remove('hidden');
-      entryVehicleCategoryGroup?.classList.remove('hidden');
-      entryVehicleModelGroup?.classList.remove('hidden');
+    btnToggleVehicle?.classList.toggle('active', type === 'VEHICLE');
+    btnToggleMotorcycle?.classList.toggle('active', type === 'MOTORCYCLE');
+    btnTogglePedestrian?.classList.toggle('active', type === 'PEDESTRIAN');
+
+    entryPlateSection?.classList.toggle('hidden', type !== 'VEHICLE');
+    entryMotorPlateSection?.classList.toggle('hidden', type !== 'MOTORCYCLE');
+    entryVehicleCategoryGroup?.classList.toggle('hidden', type === 'PEDESTRIAN');
+    entryVehicleModelGroup?.classList.toggle('hidden', type === 'PEDESTRIAN');
+
+    const vehCatSelect = document.getElementById('input-vehicle-category');
+    if (type === 'MOTORCYCLE') {
+      if (vehCatSelect) vehCatSelect.value = 'موتورسیکلت';
+    } else if (type === 'VEHICLE') {
+      if (vehCatSelect && vehCatSelect.value === 'موتورسیکلت') vehCatSelect.value = 'سواری';
     }
   }
+
   btnToggleVehicle?.addEventListener('click', () => setEntryTrafficType('VEHICLE'));
+  btnToggleMotorcycle?.addEventListener('click', () => setEntryTrafficType('MOTORCYCLE'));
   btnTogglePedestrian?.addEventListener('click', () => setEntryTrafficType('PEDESTRIAN'));
+
+  document.getElementById('input-vehicle-category')?.addEventListener('change', (e) => {
+    if (e.target.value === 'موتورسیکلت' && entryTrafficType !== 'MOTORCYCLE') {
+      setEntryTrafficType('MOTORCYCLE');
+    } else if (e.target.value !== 'موتورسیکلت' && entryTrafficType === 'MOTORCYCLE') {
+      setEntryTrafficType('VEHICLE');
+    }
+  });
 
   function applyCandidateToForm(candidate) {
     SmartSuggest.lastAppliedBackup = {
@@ -477,6 +464,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       ltr: ltr.value,
       p2: p2.value,
       city: city.value,
+      motorTop: motorPlateTop.value,
+      motorBottom: motorPlateBottom.value,
       name: inputPersonName.value,
       cat: document.getElementById('input-person-category').value,
       vehCat: document.getElementById('input-vehicle-category').value,
@@ -484,16 +473,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       notes: document.getElementById('input-notes').value
     };
 
-    setEntryTrafficType(candidate.trafficType || 'VEHICLE');
+    const targetType = candidate.trafficType || (candidate.vehicleCategory === 'موتورسیکلت' ? 'MOTORCYCLE' : 'VEHICLE');
+    setEntryTrafficType(targetType);
 
-    if (candidate.trafficType !== 'PEDESTRIAN') {
+    if (targetType === 'VEHICLE') {
       p1.value = toPersian(candidate.platePart1 || '');
       ltr.value = candidate.plateLetter || 'ب';
       p2.value = toPersian(candidate.platePart2 || '');
       city.value = toPersian(candidate.plateCity || '');
       PlateUtils.updatePlateTheme(modalPlateContainer, candidate.plateLetter || 'ب');
-
-      [p1, ltr, p2, city].forEach((el) => {
+      [p1, ltr, p2, city].forEach(el => {
+        el.classList.add('autofilled-field');
+        setTimeout(() => el.classList.remove('autofilled-field'), 1600);
+      });
+    } else if (targetType === 'MOTORCYCLE') {
+      motorPlateTop.value = toPersian(candidate.platePart1 || '');
+      motorPlateBottom.value = toPersian(candidate.platePart2 || '');
+      [motorPlateTop, motorPlateBottom].forEach(el => {
         el.classList.add('autofilled-field');
         setTimeout(() => el.classList.remove('autofilled-field'), 1600);
       });
@@ -501,14 +497,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     inputPersonName.value = candidate.personName || '';
     document.getElementById('input-person-category').value = candidate.personCategory || 'GUEST';
-    document.getElementById('input-vehicle-category').value = candidate.vehicleCategory || 'سواری';
+    document.getElementById('input-vehicle-category').value = candidate.vehicleCategory || (targetType === 'MOTORCYCLE' ? 'موتورسیکلت' : 'سواری');
     document.getElementById('input-vehicle-model').value = candidate.vehicleModel || '';
 
     if (candidate.notes && !document.getElementById('input-notes').value) {
       document.getElementById('input-notes').value = candidate.notes;
     }
 
-    [inputPersonName, document.getElementById('input-person-category')].forEach((el) => {
+    [inputPersonName, document.getElementById('input-person-category')].forEach(el => {
       el.classList.add('autofilled-field');
       setTimeout(() => el.classList.remove('autofilled-field'), 1600);
     });
@@ -528,6 +524,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     ltr.value = b.ltr;
     p2.value = b.p2;
     city.value = b.city;
+    motorPlateTop.value = b.motorTop || '';
+    motorPlateBottom.value = b.motorBottom || '';
+
     PlateUtils.updatePlateTheme(modalPlateContainer, b.ltr || 'ب');
     inputPersonName.value = b.name;
     document.getElementById('input-person-category').value = b.cat;
@@ -567,6 +566,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  async function triggerSmartMotorSearch() {
+    if (!SmartSuggest) return;
+    const topVal = motorPlateTop.value.trim();
+    const bottomVal = motorPlateBottom.value.trim();
+
+    if (!topVal && !bottomVal) {
+      SmartSuggest.hideSuggestionBox();
+      return;
+    }
+
+    const matches = await SmartSuggest.searchCandidates({
+      type: 'MOTORCYCLE',
+      p1: topVal,
+      p2: bottomVal
+    });
+
+    if (matches.length > 0) {
+      SmartSuggest.showSuggestionBox(matches, modalMotorPlateContainer, (cand) => applyCandidateToForm(cand));
+    } else {
+      SmartSuggest.hideSuggestionBox();
+    }
+  }
+
+  // تنظیم ورودی‌های پلاک خودرو
   PlateUtils.setupPlateInputAutoConvert(p1, 2, ltr, triggerSmartPlateSearch);
   ltr?.addEventListener('change', (e) => {
     PlateUtils.updatePlateTheme(modalPlateContainer, e.target.value);
@@ -575,6 +598,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   PlateUtils.setupPlateInputAutoConvert(p2, 3, city, triggerSmartPlateSearch);
   PlateUtils.setupPlateInputAutoConvert(city, 2, null, triggerSmartPlateSearch);
+
+  // تنظیم ورودی‌های پلاک موتورسیکلت (۳ رقم بالا و ۵ رقم پایین)
+  PlateUtils.setupMotorInputAutoConvert(motorPlateTop, motorPlateBottom, triggerSmartMotorSearch);
 
   inputPersonName?.addEventListener('input', async (e) => {
     const val = e.target.value;
@@ -602,6 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // فیلتر جستجوی پلاک در پنل بالا
   PlateUtils.setupPlateInputAutoConvert(searchPlateP1, 2, searchPlateLtr, () => { currentPage = 1; loadData(); });
   searchPlateLtr?.addEventListener('change', (e) => {
     PlateUtils.updatePlateTheme(searchPlateContainer, e.target.value === 'ALL' ? 'ب' : e.target.value);
@@ -612,6 +639,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   PlateUtils.setupPlateInputAutoConvert(searchPlateP2, 3, searchPlateCity, () => { currentPage = 1; loadData(); });
   PlateUtils.setupPlateInputAutoConvert(searchPlateCity, 2, null, () => { currentPage = 1; loadData(); });
 
+  // فیلدهای پلاک خودرو و موتور در مودال ویرایش
   PlateUtils.setupPlateInputAutoConvert(editP1, 2, editLtr);
   editLtr?.addEventListener('change', (e) => {
     PlateUtils.updatePlateTheme(editPlateContainer, e.target.value);
@@ -619,6 +647,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   PlateUtils.setupPlateInputAutoConvert(editP2, 3, editCity);
   PlateUtils.setupPlateInputAutoConvert(editCity, 2, null);
+  PlateUtils.setupMotorInputAutoConvert(editMotorPlateTop, editMotorPlateBottom);
 
   async function populateGuardsFilterDropdown() {
     if (!selectFilterGuard || !DB) return;
@@ -647,6 +676,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     tableLoading?.classList.remove('hidden');
+    setDbLoading(true);
 
     let allRecords = [];
     try {
@@ -655,6 +685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       allRecords = DB ? DB.getLocalRecords() : [];
     } finally {
       tableLoading?.classList.add('hidden');
+      setDbLoading(false);
     }
 
     let filtered = [...allRecords];
@@ -694,7 +725,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const filterTypeVal = selectFilterType?.value || 'ALL';
     if (filterTypeVal === 'ONLY_VEHICLE') {
-      filtered = filtered.filter((r) => r.traffic_type !== 'PEDESTRIAN');
+      filtered = filtered.filter((r) => r.traffic_type === 'VEHICLE' || (!r.traffic_type && r.vehicle_category !== 'موتورسیکلت' && r.traffic_type !== 'PEDESTRIAN'));
+    } else if (filterTypeVal === 'ONLY_MOTORCYCLE') {
+      filtered = filtered.filter((r) => r.traffic_type === 'MOTORCYCLE' || r.vehicle_category === 'موتورسیکلت');
     } else if (filterTypeVal === 'ONLY_PEDESTRIAN') {
       filtered = filtered.filter((r) => r.traffic_type === 'PEDESTRIAN');
     } else if (filterTypeVal === 'CAT_STAFF') {
@@ -756,6 +789,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderRecords();
   }
 
+  // رندر هوشمند داده‌ها (جدول لایه‌ای دسکتاپ بدون اسکرول افقی + کارت‌های بدون باگ موبایل)
   function renderRecords() {
     recordsTbody.innerHTML = '';
     const totalItems = currentFilteredRecords.length;
@@ -790,9 +824,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const exitOfficerName = r.exit_guard_name || null;
       const exitOfficerShift = r.exit_guard_shift || '';
 
-      const plateOrPedestrianHtml = isPedestrian
-        ? '<span class="badge-pedestrian"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>'
-        : PlateUtils.renderPlateBadge(r.plate_part1, r.plate_letter, r.plate_part2, r.plate_city);
+      const plateOrPedestrianHtml = PlateUtils.renderTrafficBadge(r);
 
       const statusBadgeHtml = isActive
         ? '<span class="badge-status badge-active"><svg class="svg-icon" style="width:10px; height:10px;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/></svg> حاضر در پردیس</span>'
@@ -824,6 +856,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
 
       if (isMobile) {
+        // قالب کارت کاملاً عریض، خوانا و تفکیک‌شده موبایل
         tr.innerHTML = `
           <td>
             <div class="mc-card">
@@ -840,12 +873,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                   <span class="mc-name">${r.person_name}</span>
                   ${!isPedestrian ? `
                     <div class="mc-vehicle-tags">
-                      <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
+                      <span class="badge-veh-cat">${r.vehicle_category || (r.traffic_type === 'MOTORCYCLE' ? 'موتورسیکلت' : 'سواری')}</span>
                       ${r.vehicle_model ? `<span class="badge-veh-model">${r.vehicle_model}</span>` : ''}
                     </div>
                   ` : ''}
                 </div>
-                <div>${plateOrPedestrianHtml}</div>
+                <div class="mc-plate-container">${plateOrPedestrianHtml}</div>
               </div>
 
               <div class="mc-info-grid">
@@ -855,7 +888,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div class="mc-info-item">
                   <span class="mc-info-label">زمان خروج:</span>
-                  <span class="mc-info-val">${r.exit_time_display ? `${toPersian(r.exit_time_display)} <small style="color:var(--text-faint);">(${toPersian(r.exit_jalali_date)})</small>` : 'در حال حضور'}</span>
+                  <span class="mc-info-val">${r.exit_time_display ? `${toPersian(r.exit_time_display)} <small style="color:var(--text-faint);">(${toPersian(r.exit_jalali_date)})</small>` : '<span style="color:var(--amber); font-weight:700;">در حال حضور</span>'}</span>
                 </div>
               </div>
 
@@ -884,51 +917,62 @@ document.addEventListener('DOMContentLoaded', async () => {
           </td>
         `;
       } else {
-        const vehicleInfoHtml = isPedestrian
-          ? '<span style="color:var(--text-faint); font-size:0.75rem;"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>'
-          : `
-            <div>
-              <span class="badge-veh-cat">${r.vehicle_category || 'سواری'}</span>
-              ${r.vehicle_model ? `<div class="badge-veh-model" style="margin-top:2px;">${r.vehicle_model}</div>` : ''}
-            </div>
-          `;
+        // چیدمان چندسطری و فشرده دسکتاپ (بدون اسکرول افقی)
+        const vehicleSubtitle = !isPedestrian && (r.vehicle_category || r.vehicle_model)
+          ? `<div class="cell-sub-text">${r.vehicle_category || ''} ${r.vehicle_model ? `(${r.vehicle_model})` : ''}</div>`
+          : '';
 
         tr.innerHTML = `
           <td class="text-center" style="color:var(--text-faint); font-weight:700; font-size:0.75rem;">${toPersian(globalIndex)}</td>
-          <td>${PlateUtils.renderPersonCategoryBadge(r.person_category)}</td>
-          <td>${plateOrPedestrianHtml}</td>
-          <td style="font-weight:700; color:var(--text-main);">${r.person_name}</td>
-          <td>${vehicleInfoHtml}</td>
           <td>
-            <div style="font-weight:700;">${toPersian(r.entry_time_display)}</div>
-            <div style="font-size:0.7rem; color:var(--text-muted);">${toPersian(r.entry_jalali_date)}</div>
+            <div class="cell-stack">
+              <span class="cell-main-text">${r.person_name}</span>
+              <div>${PlateUtils.renderPersonCategoryBadge(r.person_category)}</div>
+            </div>
           </td>
           <td>
-            ${r.exit_time_display ? `
-              <div style="font-weight:700; color:var(--emerald);">${toPersian(r.exit_time_display)}</div><div style="font-size:0.7rem; color:var(--text-muted);">${toPersian(r.exit_jalali_date)}</div>
-                    ` : '<span style="color:var(--text-faint); font-size:0.76rem;">—</span>'}
-                  </td>
-                  <td style="color:var(--text-body); font-size:0.76rem; max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.notes || ''}">${r.notes || '—'}</td>
-                  <td>
-                    <div class="officer-badge-entry">
-                      <span class="officer-name">${entryOfficerName}</span>
-                      <span class="officer-shift">${entryOfficerShift}</span>
-                    </div>
-                  </td>
-                  <td>
-                    ${exitOfficerName ? `
-                      <div class="officer-badge-exit">
-                        <span class="officer-name">${exitOfficerName}</span>
-                        <span class="officer-shift">${exitOfficerShift}</span>
-                      </div>
-                    ` : '<span style="color:var(--text-faint); font-size:0.75rem;">—</span>'}
-                  </td>
-                  <td>${statusBadgeHtml}</td>
-                  <td class="text-center">${actionsHtml}</td>
-                `;
-              }
-              recordsTbody.appendChild(tr);
-            });
+            <div class="cell-stack">
+              <div>${plateOrPedestrianHtml}</div>
+              ${vehicleSubtitle}
+            </div>
+          </td>
+          <td>
+            <div class="cell-stack">
+              <div>
+                <span style="font-weight:800; color:var(--text-main); font-size:0.8rem;">${toPersian(r.entry_time_display)}</span>
+                <span class="cell-sub-text">(${toPersian(r.entry_jalali_date)})</span>
+              </div>
+              <div>
+                ${r.exit_time_display ? `
+                  <span style="font-weight:800; color:var(--emerald); font-size:0.8rem;">${toPersian(r.exit_time_display)}</span>
+                  <span class="cell-sub-text">(${toPersian(r.exit_jalali_date)})</span>
+                ` : '<span style="color:var(--amber); font-weight:700; font-size:0.7rem;">حاضر در پردیس</span>'}
+              </div>
+            </div>
+          </td>
+          <td style="max-width:180px;">
+            <div class="cell-sub-text" style="line-height:1.4; white-space:normal; word-break:break-word;" title="${r.notes || ''}">
+              ${r.notes || '—'}
+            </div>
+          </td>
+          <td>
+            <div class="cell-stack">
+              <div class="cell-officer-line">
+                <span class="officer-lbl">ورود:</span>
+                <span class="officer-val officer-in-val">${entryOfficerName}</span>
+              </div>
+              <div class="cell-officer-line">
+                <span class="officer-lbl">خروج:</span>
+                ${exitOfficerName ? `<span class="officer-val officer-out-val">${exitOfficerName}</span>` : '<span style="color:var(--text-faint);">—</span>'}
+              </div>
+            </div>
+          </td>
+          <td>${statusBadgeHtml}</td>
+          <td class="text-center">${actionsHtml}</td>
+        `;
+      }
+      recordsTbody.appendChild(tr);
+    });
 
     document.querySelectorAll('[data-action="exit"]').forEach((btn) => {
       btn.addEventListener('click', (e) => openExitModal(Number(e.currentTarget.getAttribute('data-id'))));
@@ -1133,15 +1177,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.Jalali) document.getElementById('input-entry-time').value = Jalali.formatTime(new Date());
   });
 
+  // ثبت نهایی تردد جدید (پشتیبانی کامل از خودرو، موتورسیکلت و عابر)
   formNewEntry?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const err = document.getElementById('entry-error-msg');
     err?.classList.add('hidden');
 
-    const p1Val = toPersian(p1.value.trim());
-    const ltrVal = ltr.value;
-    const p2Val = toPersian(p2.value.trim());
-    const cityVal = toPersian(city.value.trim());
     const person = inputPersonName.value.trim();
     const category = document.getElementById('input-person-category').value;
     const vehicleCat = document.getElementById('input-vehicle-category').value;
@@ -1150,28 +1191,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     const entryTime = toLatin(document.getElementById('input-entry-time').value.trim());
     const notes = document.getElementById('input-notes').value.trim();
 
+    let p1Val = null, ltrVal = null, p2Val = null, cityVal = null, plateFull = '';
+
     if (entryTrafficType === 'VEHICLE') {
+      p1Val = toPersian(p1.value.trim());
+      ltrVal = ltr.value;
+      p2Val = toPersian(p2.value.trim());
+      cityVal = toPersian(city.value.trim());
+
       if (p1Val.length !== 2 || p2Val.length !== 3 || cityVal.length !== 2) {
-        err.textContent = 'لطفاً تمامی ارقام پلاک خودرو را وارد فرمایید.';
+        err.textContent = 'لطفاً تمامی ارقام پلاک خودرو را به درستی وارد فرمایید.';
         err.classList.remove('hidden');
         return;
       }
+      plateFull = PlateUtils.formatPlateFull(p1Val, ltrVal, p2Val, cityVal);
+    } else if (entryTrafficType === 'MOTORCYCLE') {
+      const topDigits = toPersian(motorPlateTop.value.trim());
+      const bottomDigits = toPersian(motorPlateBottom.value.trim());
+
+      if (topDigits.length !== 3 || bottomDigits.length !== 5) {
+        err.textContent = 'پلاک موتورسیکلت باید شامل ۳ رقم بالا و ۵ رقم پایین باشد.';
+        err.classList.remove('hidden');
+        return;
+      }
+      p1Val = topDigits;
+      p2Val = bottomDigits;
+      plateFull = PlateUtils.formatMotorPlateFull(topDigits, bottomDigits);
+    } else {
+      plateFull = 'عابر پیاده';
     }
 
-    const plateFull = entryTrafficType === 'VEHICLE' ? PlateUtils.formatPlateFull(p1Val, ltrVal, p2Val, cityVal) : 'عابر پیاده';
-
     try {
+      setDbLoading(true);
       await DB.insertEntry({
         traffic_type: entryTrafficType,
         person_category: category,
         person_name: person,
-        plate_part1: entryTrafficType === 'VEHICLE' ? p1Val : null,
-        plate_letter: entryTrafficType === 'VEHICLE' ? ltrVal : null,
-        plate_part2: entryTrafficType === 'VEHICLE' ? p2Val : null,
-        plate_city: entryTrafficType === 'VEHICLE' ? cityVal : null,
+        plate_part1: p1Val,
+        plate_letter: ltrVal,
+        plate_part2: p2Val,
+        plate_city: cityVal,
         plate_full: plateFull,
-        vehicle_category: entryTrafficType === 'VEHICLE' ? vehicleCat : 'عابر پیاده',
-        vehicle_model: entryTrafficType === 'VEHICLE' ? vehicleModel : '',
+        vehicle_category: entryTrafficType === 'PEDESTRIAN' ? 'عابر پیاده' : (entryTrafficType === 'MOTORCYCLE' ? 'موتورسیکلت' : vehicleCat),
+        vehicle_model: entryTrafficType === 'PEDESTRIAN' ? '' : vehicleModel,
         status: 'ACTIVE',
         entry_jalali_date: entryDate,
         entry_time_display: entryTime,
@@ -1189,6 +1251,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (ex) {
       err.textContent = ex.message;
       err.classList.remove('hidden');
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -1207,12 +1271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('exit-record-id').value = record.id;
     document.getElementById('exit-driver-name').textContent = record.person_name;
-
-    if (record.traffic_type === 'PEDESTRIAN') {
-      document.getElementById('exit-plate-badge').innerHTML = '<span class="badge-pedestrian"><img src="walking.svg" class="svg-icon-img" alt="عابر" /> عابر پیاده</span>';
-    } else {
-      document.getElementById('exit-plate-badge').innerHTML = PlateUtils.renderPlateBadge(record.plate_part1, record.plate_letter, record.plate_part2, record.plate_city);
-    }
+    document.getElementById('exit-plate-badge').innerHTML = PlateUtils.renderTrafficBadge(record);
 
     document.getElementById('exit-entry-time-info').textContent = `${toPersian(record.entry_jalali_date)} - ساعت ${toPersian(record.entry_time_display)}`;
     document.getElementById('exit-entry-guard-info').textContent = `${record.entry_guard_name || record.guard_name || 'مأمور کشیک'}`;
@@ -1240,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const exitTime = toLatin(document.getElementById('input-exit-time').value.trim());
 
     try {
+      setDbLoading(true);
       await DB.recordExit(id, {
         exit_jalali_date: exitDate,
         exit_time_display: exitTime
@@ -1250,21 +1310,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       await loadData();
     } catch (ex) {
       showToast('error', ex.message);
+    } finally {
+      setDbLoading(false);
     }
   });
 
-  const editStatusSelect = document.getElementById('edit-status');
-  const editExitFields = document.getElementById('edit-exit-fields');
-  const editTrafficType = document.getElementById('edit-traffic-type');
-  const editPlateSection = document.getElementById('edit-plate-section');
-  const editVehCatGroup = document.getElementById('edit-veh-cat-group');
-  const editVehModelGroup = document.getElementById('edit-veh-model-group');
-
+  // تغییر نوع تردد در مودال ویرایش
   editTrafficType?.addEventListener('change', (e) => {
-    const isPed = e.target.value === 'PEDESTRIAN';
-    editPlateSection?.classList.toggle('hidden', isPed);
+    const val = e.target.value;
+    const isPed = val === 'PEDESTRIAN';
+    const isMotor = val === 'MOTORCYCLE';
+
+    editPlateSection?.classList.toggle('hidden', isPed || isMotor);
+    editMotorPlateSection?.classList.toggle('hidden', !isMotor);
     editVehCatGroup?.classList.toggle('hidden', isPed);
     editVehModelGroup?.classList.toggle('hidden', isPed);
+
+    const editVehCatSelect = document.getElementById('edit-vehicle-category');
+    if (isMotor && editVehCatSelect) {
+      editVehCatSelect.value = 'موتورسیکلت';
+    }
   });
 
   editStatusSelect?.addEventListener('change', (e) => {
@@ -1284,24 +1349,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('edit-record-id').value = record.id;
     document.getElementById('edit-error-msg')?.classList.add('hidden');
 
-    const isPed = record.traffic_type === 'PEDESTRIAN';
-    editTrafficType.value = isPed ? 'PEDESTRIAN' : 'VEHICLE';
-    editPlateSection?.classList.toggle('hidden', isPed);
+    const type = record.traffic_type || (record.vehicle_category === 'موتورسیکلت' ? 'MOTORCYCLE' : 'VEHICLE');
+    editTrafficType.value = type;
+
+    const isPed = type === 'PEDESTRIAN';
+    const isMotor = type === 'MOTORCYCLE';
+
+    editPlateSection?.classList.toggle('hidden', isPed || isMotor);
+    editMotorPlateSection?.classList.toggle('hidden', !isMotor);
     editVehCatGroup?.classList.toggle('hidden', isPed);
     editVehModelGroup?.classList.toggle('hidden', isPed);
 
     document.getElementById('edit-person-category').value = record.person_category || 'GUEST';
 
-    if (!isPed) {
+    if (type === 'VEHICLE') {
       editP1.value = toPersian(record.plate_part1 || '');
       editLtr.value = record.plate_letter || 'ب';
       editP2.value = toPersian(record.plate_part2 || '');
       editCity.value = toPersian(record.plate_city || '');
       PlateUtils.updatePlateTheme(editPlateContainer, record.plate_letter || 'ب');
+    } else if (type === 'MOTORCYCLE') {
+      editMotorPlateTop.value = toPersian(record.plate_part1 || '');
+      editMotorPlateBottom.value = toPersian(record.plate_part2 || '');
     }
 
     document.getElementById('edit-person-name').value = record.person_name || '';
-    document.getElementById('edit-vehicle-category').value = record.vehicle_category || 'سواری';
+    document.getElementById('edit-vehicle-category').value = record.vehicle_category || (isMotor ? 'موتورسیکلت' : 'سواری');
     document.getElementById('edit-vehicle-model').value = record.vehicle_model || '';
     document.getElementById('edit-entry-date').value = record.entry_jalali_date || '';
     document.getElementById('edit-entry-time').value = record.entry_time_display || '';
@@ -1321,34 +1394,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     const err = document.getElementById('edit-error-msg');
     err?.classList.add('hidden');
 
-    const isPed = editTrafficType.value === 'PEDESTRIAN';
-    const p1Val = toPersian(editP1.value.trim());
-    const ltrVal = editLtr.value;
-    const p2Val = toPersian(editP2.value.trim());
-    const cityVal = toPersian(editCity.value.trim());
+    const type = editTrafficType.value;
     const statusVal = editStatusSelect.value;
+    const isExited = statusVal === 'EXITED';
 
-    if (!isPed && (p1Val.length !== 2 || p2Val.length !== 3 || cityVal.length !== 2)) {
-      err.textContent = 'لطفاً تمامی ارقام پلاک را تکمیل فرمایید.';
-      err.classList.remove('hidden');
-      return;
+    let p1Val = null, ltrVal = null, p2Val = null, cityVal = null, plateFull = '';
+
+    if (type === 'VEHICLE') {
+      p1Val = toPersian(editP1.value.trim());
+      ltrVal = editLtr.value;
+      p2Val = toPersian(editP2.value.trim());
+      cityVal = toPersian(editCity.value.trim());
+
+      if (p1Val.length !== 2 || p2Val.length !== 3 || cityVal.length !== 2) {
+        err.textContent = 'لطفاً تمامی ارقام پلاک خودرو را تکمیل فرمایید.';
+        err.classList.remove('hidden');
+        return;
+      }
+      plateFull = PlateUtils.formatPlateFull(p1Val, ltrVal, p2Val, cityVal);
+    } else if (type === 'MOTORCYCLE') {
+      p1Val = toPersian(editMotorPlateTop.value.trim());
+      p2Val = toPersian(editMotorPlateBottom.value.trim());
+
+      if (p1Val.length !== 3 || p2Val.length !== 5) {
+        err.textContent = 'پلاک موتور باید ۳ رقم بالا و ۵ رقم پایین باشد.';
+        err.classList.remove('hidden');
+        return;
+      }
+      plateFull = PlateUtils.formatMotorPlateFull(p1Val, p2Val);
+    } else {
+      plateFull = 'عابر پیاده';
     }
 
-    const isExited = statusVal === 'EXITED';
-    const plateFull = isPed ? 'عابر پیاده' : PlateUtils.formatPlateFull(p1Val, ltrVal, p2Val, cityVal);
-
     try {
+      setDbLoading(true);
       await DB.updateRecord(id, {
-        traffic_type: isPed ? 'PEDESTRIAN' : 'VEHICLE',
+        traffic_type: type,
         person_category: document.getElementById('edit-person-category').value,
-        plate_part1: isPed ? null : p1Val,
-        plate_letter: isPed ? null : ltrVal,
-        plate_part2: isPed ? null : p2Val,
-        plate_city: isPed ? null : cityVal,
+        plate_part1: p1Val,
+        plate_letter: ltrVal,
+        plate_part2: p2Val,
+        plate_city: cityVal,
         plate_full: plateFull,
         person_name: document.getElementById('edit-person-name').value.trim(),
-        vehicle_category: isPed ? 'عابر پیاده' : document.getElementById('edit-vehicle-category').value,
-        vehicle_model: isPed ? '' : document.getElementById('edit-vehicle-model').value.trim(),
+        vehicle_category: type === 'PEDESTRIAN' ? 'عابر پیاده' : (type === 'MOTORCYCLE' ? 'موتورسیکلت' : document.getElementById('edit-vehicle-category').value),
+        vehicle_model: type === 'PEDESTRIAN' ? '' : document.getElementById('edit-vehicle-model').value.trim(),
         entry_jalali_date: toLatin(document.getElementById('edit-entry-date').value.trim()),
         entry_time_display: toLatin(document.getElementById('edit-entry-time').value.trim()),
         status: statusVal,
@@ -1363,6 +1453,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (ex) {
       err.textContent = ex.message;
       err.classList.remove('hidden');
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -1378,12 +1470,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-confirm-delete')?.addEventListener('click', async () => {
     const id = Number(document.getElementById('delete-target-id').value);
     try {
+      setDbLoading(true);
       await DB.deleteRecord(id);
       modalDeleteConfirm.classList.add('hidden');
       showToast('success', 'تردد با موفقیت حذف گردید.');
       await loadData();
     } catch (ex) {
       showToast('error', ex.message);
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -1467,12 +1562,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const uid = e.currentTarget.getAttribute('data-delete-user');
         if (confirm('آیا از حذف این کاربر اطمینان دارید؟')) {
           try {
+            setDbLoading(true);
             await DB.deleteUser(uid);
             await populateUsersList();
             await populateGuardsFilterDropdown();
             showToast('success', 'کاربر با موفقیت حذف شد.');
           } catch (err) {
             showToast('error', err.message);
+          } finally {
+            setDbLoading(false);
           }
         }
       });
@@ -1495,6 +1593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
+      setDbLoading(true);
       await DB.saveUser({
         id: userFormId.value || undefined,
         name,
@@ -1518,6 +1617,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('success', 'مشخصات کاربر ذخیره شد.');
     } catch (err) {
       showToast('error', err.message);
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -1612,11 +1713,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    resultBox.textContent = 'در حال تست ارتباط و ایجاد جداول...';
+    resultBox.textContent = 'در حال تست ارتباط و همگام‌سازی...';
     resultBox.className = 'form-error';
     resultBox.style.color = 'var(--primary)';
     resultBox.style.borderColor = 'var(--primary)';
     resultBox.classList.remove('hidden');
+    setDbLoading(true);
 
     try {
       if (DB.initCloudTables) await DB.initCloudTables();
@@ -1634,6 +1736,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       resultBox.textContent = 'خطا در ارتباط با سرور ابری: ' + ex.message;
       resultBox.style.color = 'var(--rose)';
       resultBox.style.borderColor = 'var(--rose)';
+    } finally {
+      setDbLoading(false);
     }
   });
 
@@ -1648,6 +1752,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   btnExportBackup?.addEventListener('click', async () => {
     if (!DB) return;
+    setDbLoading(true);
     const records = await DB.getRecords();
     const users = await DB.getUsers();
     const profiles = DB.getLocalProfiles();
@@ -1661,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(a);
     a.click();
     a.remove();
+    setDbLoading(false);
     showToast('success', 'پشتیبان سیستم دانلود شد.');
   });
 
@@ -1668,10 +1774,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (DB && DB.isCloudConfigured && DB.isCloudConfigured()) {
     try {
+      setDbLoading(true);
       if (DB.initCloudTables) await DB.initCloudTables();
       if (DB.syncProfiles) await DB.syncProfiles();
     } catch (e) {
       console.warn('عدم دسترسی به سرور ابری در شروع اولیه:', e);
+    } finally {
+      setDbLoading(false);
     }
   }
 
