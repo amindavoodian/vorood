@@ -1,7 +1,7 @@
 /**
  * db.js
- * لایه پایگاه داده با پیکربندی هاردکد شده (Turso Cloud + LocalStorage Fallback)
- * پشتیبانی از ترددها، کاربران، پروفایل‌ها و یادداشت‌های چسبان (Sticky Notes)
+ * لایه ارتباط با پایگاه داده (Turso Cloud + LocalStorage Fallback)
+ * مجهز به نشانگر همگام‌سازی لحظه‌ای، پشتیبانی از خودرو، موتورسیکلت، کاربران و یادداشت‌ها
  */
 
 (function () {
@@ -16,6 +16,16 @@
     ACTIVE_USER_KEY: 'campus_guard_active_user_v8',
     PROFILES_KEY: 'campus_guard_profiles_v8',
     NOTES_KEY: 'campus_guard_sticky_notes_v8',
+
+    notifyLoadingState(isLoading) {
+      const bar = document.getElementById('app-loading-bar');
+      if (bar) bar.classList.toggle('is-active', isLoading);
+      const ind = document.getElementById('db-status-indicator');
+      if (ind) {
+        if (isLoading) ind.classList.add('is-syncing');
+        else ind.classList.remove('is-syncing');
+      }
+    },
 
     getTursoConfig() {
       return HARDCODED_TURSO_CONFIG;
@@ -53,31 +63,37 @@
         return { type: 'text', value: String(arg) };
       });
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${cfg.authToken.trim()}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          requests: [
-            { type: 'execute', stmt: { sql, args: formattedArgs } },
-            { type: 'close' }
-          ]
-        })
-      });
+      this.notifyLoadingState(true);
 
-      if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(`خطای سرور ابری (${response.status}): ${errBody}`);
-      }
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cfg.authToken.trim()}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            requests: [
+              { type: 'execute', stmt: { sql, args: formattedArgs } },
+              { type: 'close' }
+            ]
+          })
+        });
 
-      const data = await response.json();
-      const firstResult = data.results?.[0];
-      if (firstResult?.type === 'error') {
-        throw new Error(firstResult.error?.message || 'خطای اجرای کوئری در دیتابیس ابری');
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`خطای سرور ابری (${response.status}): ${errBody}`);
+        }
+
+        const data = await response.json();
+        const firstResult = data.results?.[0];
+        if (firstResult?.type === 'error') {
+          throw new Error(firstResult.error?.message || 'خطای اجرای کوئری در دیتابیس ابری');
+        }
+        return firstResult?.response?.result;
+      } finally {
+        this.notifyLoadingState(false);
       }
-      return firstResult?.response?.result;
     },
 
     async initCloudTables() {
@@ -572,8 +588,13 @@
         return `PED_${Jalali.toLatinDigits(personName || '').trim().toLowerCase()}`;
       }
       const cP1 = Jalali.toLatinDigits(p1 || '').trim();
-      const cLtr = (ltr || '').trim();
       const cP2 = Jalali.toLatinDigits(p2 || '').trim();
+
+      if (trafficType === 'MOTORCYCLE') {
+        return `MTR_${cP1}_${cP2}`;
+      }
+
+      const cLtr = (ltr || '').trim();
       const cCity = Jalali.toLatinDigits(city || '').trim();
       return `VEH_${cP1}_${cLtr}_${cP2}_${cCity}`;
     },
