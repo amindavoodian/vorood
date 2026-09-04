@@ -1,6 +1,7 @@
 /**
  * export-utils.js
  * ماژول تخصصی استخراج داده‌ها و ایجاد فایل‌های گزارش CSV سازگار با اکسل (فارسی UTF-8 BOM)
+ * با پشتیبانی کامل از خودرو، موتورسیکلت و عابرین پیاده
  */
 
 (function () {
@@ -26,7 +27,7 @@
 
       if (eDate === xDate) {
         let diff = exitMinutes - entryMinutes;
-        if (diff < 0) diff += 24 * 60; // تردد بعد از نیمه‌شب
+        if (diff < 0) diff += 24 * 60; // تردد پس از نیمه‌شب
         const hours = Math.floor(diff / 60);
         const mins = diff % 60;
         if (hours === 0) return `${Jalali.toPersianDigits(mins)} دقیقه`;
@@ -49,7 +50,7 @@
     /**
      * تولید و دانلود فایل گزارش CSV ترددها بر اساس فیلترهای جاری
      */
-    exportRecordsToCsv(records, appliedFilterSummary = '') {
+    exportRecordsToCsv(records) {
       if (!records || records.length === 0) {
         throw new Error('هیچ رکوردی برای استخراج خروجی وجود ندارد.');
       }
@@ -60,35 +61,46 @@
         'نوع مراجع',
         'نام و نام خانوادگی',
         'شماره پلاک / شناسه',
-        'دسته خودرو',
-        'مدل و مشخصه خودرو',
+        'دسته وسیله نقلیه',
+        'مدل و مشخصه خودرو / موتور',
         'تاریخ ورود',
         'ساعت ورود',
         'تاریخ خروج',
         'ساعت خروج',
         'مدت حضور در پردیس',
         'وضعیت حضور',
-        'مامور ثبت ورود',
+        'مأمور ثبت ورود',
         'شیفت ورود',
-        'مامور ثبت خروج',
+        'مأمور ثبت خروج',
         'شیفت خروج',
         'علت مراجعه / هماهنگ‌کننده / مقصد'
       ];
 
       const csvRows = [];
-
-      // سطر هدر ستون‌ها
       csvRows.push(headers.map(this.escapeCsvCell).join(','));
 
-      // سطرهای داده
       records.forEach((r, index) => {
         const isPedestrian = r.traffic_type === 'PEDESTRIAN';
+        const isMotorcycle = r.traffic_type === 'MOTORCYCLE' || r.vehicle_category === 'موتورسیکلت';
+
         const personCatLabel = window.PlateUtils 
           ? PlateUtils.getPersonCategoryLabel(r.person_category) 
           : (r.person_category || 'ارباب‌رجوع');
 
-        let plateStr = 'عابر پیاده';
-        if (!isPedestrian) {
+        let trafficTypeStr = 'با خودرو';
+        let plateStr = '—';
+        let vehicleCategoryStr = r.vehicle_category || 'سواری';
+
+        if (isPedestrian) {
+          trafficTypeStr = 'عابر پیاده';
+          plateStr = 'عابر پیاده';
+          vehicleCategoryStr = 'بدون وسیله';
+        } else if (isMotorcycle) {
+          trafficTypeStr = 'موتورسیکلت';
+          plateStr = r.plate_full || (r.plate_part1 && r.plate_part2 ? `موتور ${r.plate_part1} - ${r.plate_part2}` : 'فاقد پلاک');
+          vehicleCategoryStr = 'موتورسیکلت';
+        } else {
+          trafficTypeStr = 'با خودرو';
           plateStr = r.plate_full || (r.plate_part1 ? `${r.plate_part1} ${r.plate_letter} ${r.plate_part2} ایران ${r.plate_city}` : 'فاقد پلاک');
         }
 
@@ -103,11 +115,11 @@
 
         const row = [
           index + 1,
-          isPedestrian ? 'عابر پیاده' : 'با خودرو',
+          trafficTypeStr,
           personCatLabel,
           r.person_name || '—',
           plateStr,
-          isPedestrian ? 'بدون خودرو' : (r.vehicle_category || 'سواری'),
+          vehicleCategoryStr,
           isPedestrian ? '—' : (r.vehicle_model || '—'),
           r.entry_jalali_date || '—',
           r.entry_time_display || '—',
@@ -125,7 +137,7 @@
         csvRows.push(row.map(this.escapeCsvCell).join(','));
       });
 
-      // اضافه کردن کاراکتر BOM برای نمایش بدون نقص حروف فارسی در اکسل
+      // درج بایت BOM جهت نمایش صحیح فونت فارسی در نرم‌افزار اکسل
       const csvContent = '\uFEFF' + csvRows.join('\r\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       
@@ -134,7 +146,6 @@
       const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
       const fileName = `traffic_report_${dateStr}_${timeStr}.csv`;
 
-      // ایجاد لینک دانلود در مرورگر
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
