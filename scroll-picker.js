@@ -1,3 +1,9 @@
+/**
+ * scroll-picker.js
+ * انتخابگر چرخشی (Drum Picker) روان و مدرن تاریخ شمسی و ساعت
+ * اصلاح‌شده: پشتیبانی از روزهای ۳۱ گانه و سال‌های ۱۴۰۰ تا ۱۴۵۰
+ */
+
 (function () {
   const toPersian = (v) => (window.Jalali && Jalali.toPersianDigits) ? Jalali.toPersianDigits(String(v ?? '')) : String(v ?? '');
   const toLatin = (v) => (window.Jalali && Jalali.toLatinDigits) ? Jalali.toLatinDigits(String(v ?? '')) : String(v ?? '');
@@ -161,13 +167,17 @@
 
       const now = new Date();
       let currentJalali = [1405, 1, 1];
-      if (window.Jalali) {
-        currentJalali = Jalali.formatJalaliDate(now).split('/').map(Number);
+      if (window.Jalali && Jalali.formatJalaliDate) {
+        const jFormatted = toLatin(Jalali.formatJalaliDate(now));
+        const parts = jFormatted.split(/[\/\-]/).map(Number);
+        if (parts.length === 3 && !parts.some(isNaN)) {
+          currentJalali = parts;
+        }
       }
 
-      const year = initY || currentJalali[0];
-      const month = initM || currentJalali[1];
-      const day = initD || currentJalali[2];
+      const year = (!isNaN(initY) && initY >= 1400) ? initY : currentJalali[0];
+      const month = (!isNaN(initM) && initM >= 1 && initM <= 12) ? initM : currentJalali[1];
+      const day = (!isNaN(initD) && initD >= 1 && initD <= 31) ? initD : currentJalali[2];
 
       container.innerHTML = `
         <div class="sp-col" id="sp-col-day">
@@ -184,8 +194,9 @@
         </div>
       `;
 
+      // بازه سال‌ها از ۱۴۰۰ تا ۱۴۵۰
       const years = [];
-      for (let y = 1400; y <= 1412; y++) years.push(y);
+      for (let y = 1400; y <= 1450; y++) years.push(y);
       this.populateWheel('wheel-year', years.map((y) => ({ val: y, label: toPersian(y) })), year);
 
       const months = MONTH_NAMES.map((name, idx) => ({ val: idx + 1, label: `${toPersian(idx + 1)} - ${name}` }));
@@ -194,9 +205,9 @@
       this.updateDayWheel(year, month, day);
 
       const onMonthOrYearChange = () => {
-        const curY = this.getSelectedValue('wheel-year');
-        const curM = this.getSelectedValue('wheel-month');
-        const curD = this.getSelectedValue('wheel-day');
+        const curY = this.getSelectedValue('wheel-year') || year;
+        const curM = this.getSelectedValue('wheel-month') || month;
+        const curD = this.getSelectedValue('wheel-day') || day;
         this.updateDayWheel(curY, curM, curD);
       };
 
@@ -212,14 +223,27 @@
 
     updateDayWheel(year, month, selectDay = 1) {
       let maxDays = 31;
-      if (month > 6 && month <= 11) maxDays = 30;
-      else if (month === 12) maxDays = 29;
+      const m = Number(month);
+      const y = Number(year);
+
+      // در گاه‌شماری جلالی ماه‌های ۱ الی ۶ دارای ۳۱ روز هستند
+      if (m > 6 && m <= 11) {
+        maxDays = 30;
+      } else if (m === 12) {
+        const isLeap = (window.Jalali && typeof Jalali.isLeapYear === 'function') ? Jalali.isLeapYear(y) : false;
+        maxDays = isLeap ? 30 : 29;
+      } else {
+        maxDays = 31;
+      }
+
+      if (!m || isNaN(m)) maxDays = 31;
 
       const days = [];
       for (let d = 1; d <= maxDays; d++) {
         days.push({ val: d, label: toPersian(pad(d)) });
       }
-      this.populateWheel('wheel-day', days, Math.min(selectDay, maxDays));
+      const chosenDay = (selectDay && !isNaN(selectDay)) ? Math.min(Math.max(1, Number(selectDay)), maxDays) : 1;
+      this.populateWheel('wheel-day', days, chosenDay);
     }
 
     buildTimeWheels() {
@@ -295,7 +319,7 @@
       if (parts.length === 3) {
         const [y, m, d] = parts;
         const years = [];
-        for (let i = 1400; i <= 1412; i++) years.push(i);
+        for (let i = 1400; i <= 1450; i++) years.push(i);
         this.populateWheel('wheel-year', years.map((i) => ({ val: i, label: toPersian(i) })), y);
         this.populateWheel('wheel-month', MONTH_NAMES.map((n, i) => ({ val: i + 1, label: `${toPersian(i + 1)} - ${n}` })), m);
         this.updateDayWheel(y, m, d);
